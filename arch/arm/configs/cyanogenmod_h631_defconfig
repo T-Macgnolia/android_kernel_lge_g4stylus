@@ -3329,7 +3329,7 @@ CONFIG_ION_MSM=y
 # Qualcomm Atheros Prima WLAN module
 #
 # CONFIG_PRIMA_WLAN is not set
-# CONFIG_PRONTO_WLAN is not set
+CONFIG_PRONTO_WLAN=y
 
 #
 # Qualcomm MSM specific device drivers

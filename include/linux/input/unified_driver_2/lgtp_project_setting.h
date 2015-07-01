@@ -62,12 +62,13 @@
 #define TOUCH_MODEL_LION_3G
 #endif
 
-#if defined (CONFIG_MACH_MSM8939_P1BDSN_GLOBAL_COM) || defined(CONFIG_MACH_MSM8939_P1BC_SPR_US)
+#if defined (CONFIG_MACH_MSM8939_P1BDSN_GLOBAL_COM) || defined(CONFIG_MACH_MSM8939_P1BC_SPR_US) || defined(CONFIG_MACH_MSM8939_P1BSSN_SKT_KR) || \
+	defined(CONFIG_MACH_MSM8939_P1BSSN_BELL_CA) || defined(CONFIG_MACH_MSM8939_P1BSSN_VTR_CA)
 #undef TOUCH_MODEL_C70
 #define TOUCH_MODEL_P1B
 #endif
 
-#if defined ( CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_YG )
+#if defined ( CONFIG_TOUCHSCREEN_MSM8916_YG )
 #define TOUCH_MODEL_YG
 #endif
 /****************************************************************************
@@ -97,6 +98,8 @@
 /* Driver Feature */
 #define ENABLE_HOVER_DETECTION
 
+/* IC Type */
+#define TOUCH_TYPE_ONCELL
 #elif defined ( TOUCH_MODEL_C30 )
 
 /* AP Solution */
@@ -137,11 +140,19 @@
 /* Touch Device */
 #define TOUCH_DEVICE_S3320
 
-/* Driver Feature */
-#define ENABLE_TOUCH_AT_OFF_CHARGING
+/*JDI In-cell*/
+#define TOUCH_JDI_INCELL
 
 /* Swipe mode */
 #define ENABLE_SWIPE_MODE
+
+/* Realtime LPWG fail reason */
+#define ENABLE_REALTIME_LPWG_FAIL_REASON
+
+/* enable noise log*/
+#define ENABLE_NOISE_LOG
+
+#define ENABLE_GHOST_DETECT_SOLUTION
 
 #elif defined ( TOUCH_MODEL_C90NAS )
 
@@ -188,6 +199,9 @@
 /* Touch Device */
 #define TOUCH_DEVICE_S3320
 
+/*JDI In-cell*/
+#define TOUCH_JDI_INCELL
+
 #elif defined ( TOUCH_MODEL_Y70 )
 
 /* AP Solution */
@@ -198,6 +212,9 @@
 
 /* Touch Device */
 #define TOUCH_DEVICE_S3320
+
+/*JDI In-cell*/
+#define TOUCH_JDI_INCELL
 
 #elif defined ( TOUCH_MODEL_C90 )
 
@@ -210,6 +227,9 @@
 /* Touch Device */
 #define TOUCH_DEVICE_S3320
 
+/*JDI In-cell*/
+#define TOUCH_JDI_INCELL
+
 #elif defined ( TOUCH_MODEL_C50 )
 
 /* AP Solution */
@@ -221,6 +241,20 @@
 /* Touch Device */
 #define TOUCH_DEVICE_MIT200
 
+/*LGD In-cell*/
+#define TOUCH_LGD_PHASE2
+
+#elif defined ( TOUCH_MODEL_LION_3G )
+
+/* AP Solution */
+#define TOUCH_PLATFORM_MTK
+
+/* AP Chipset */
+#define TOUCH_PLATFORM_MT6582
+
+/* Touch Device */
+#define TOUCH_DEVICE_TD4191
+
 #elif defined ( TOUCH_MODEL_P1B )
 /* AP Solution */
 #define TOUCH_PLATFORM_QCT
@@ -230,6 +264,15 @@
 
 /* Touch Device */
 #define TOUCH_DEVICE_S3320
+
+/*JDI In-cell*/
+#define TOUCH_JDI_INCELL
+
+/* Swipe mode */
+#define ENABLE_SWIPE_MODE
+
+/* IC Type */
+#define TOUCH_TYPE_INCELL
 
 #else
 #error "Model should be defined"

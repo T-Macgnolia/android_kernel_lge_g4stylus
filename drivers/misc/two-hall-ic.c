@@ -115,8 +115,10 @@ static void boot_cradle_det_func(void)
 	printk("%s : [HALL] boot cover value is %d\n", __func__ , state);
 
 	cradle->state = state;
+	cradle->hall_state = state;
 	wake_lock_timeout(&cradle->wake_lock, msecs_to_jiffies(3000));
 	switch_set_state(&cradle->sdev, cradle->state);
+	switch_set_state(&cradle->hani_sdev, cradle->hall_state);
 }
 
 static void pm8xxx_cover_work_func(struct work_struct *work)

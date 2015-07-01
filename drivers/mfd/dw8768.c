@@ -58,8 +58,6 @@ int dw8768_off_seq(void)
 	ret = dw8768_write_byte(dw8768_base, DW8768_ENABLE_REG, DW8768_OFF_SEQ2);
 	if (ret < 0)
 		return ret;
-	mdelay(12);
-
 	return 0;
 }
 EXPORT_SYMBOL_GPL(dw8768_off_seq);

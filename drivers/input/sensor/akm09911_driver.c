@@ -2091,6 +2091,9 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 #else
 		s_akm->bst_pd = kzalloc(sizeof(*s_akm->bst_pd), GFP_KERNEL);
 		s_akm->bst_pd->place = 5;
+#ifdef CONFIG_MACH_MSM8939_P1BSSN_SKT_KR
+		s_akm->bst_pd->place = 6;
+#endif
 		dev_info(&client->dev, "platform data of bmm %s: place: %d, irq: %d",
 		s_akm->bst_pd->name, s_akm->bst_pd->place, s_akm->bst_pd->irq);
 #endif

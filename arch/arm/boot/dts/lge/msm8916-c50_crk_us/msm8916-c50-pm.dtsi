@@ -15,19 +15,19 @@
 
 	lge,no-init-cable = <0 0 0>;
 	lge,cable-mhl-1k = <5000 500 500>;
-	lge,cable-u-28p7k = <5500 630 500>;
-	lge,cable-28p7k = <6000 630 500>;
+	lge,cable-u-28p7k = <5500 810 500>;
+	lge,cable-28p7k = <6000 810 500>;
 	lge,cable-56k = <200000 1500 1500>;
-	lge,cable-100k = <239000 630 500>;
+	lge,cable-100k = <239000 810 500>;
 	lge,cable-130k = <340000 1500 1500>;
-	lge,cable-180k = <400000 630 500>;
-	lge,cable-200k = <410000 630 500>;
-	lge,cable-220k = <485000 630 500>;
-	lge,cable-270k = <560000 630 500>;
-	lge,cable-330k = <735000 630 500>;
-	lge,cable-620k = <955000 630 500>;
+	lge,cable-180k = <400000 810 500>;
+	lge,cable-200k = <410000 810 500>;
+	lge,cable-220k = <485000 810 500>;
+	lge,cable-270k = <560000 810 500>;
+	lge,cable-330k = <735000 810 500>;
+	lge,cable-620k = <955000 810 500>;
 	lge,cable-910k = <1140000 1500 1500>;
-	lge,cable-none = <1900000 630  500>;
+	lge,cable-none = <1900000 810  500>;
 
 	qcom,vddmax-mv = <4350>;
 	qcom,vddsafe-mv = <4380>;

@@ -1250,16 +1250,4 @@ config USB_EMBEDDED_BATTERY_REBOOT
 	  Say y if this must be needed.
 
 	default n
-
-config USB_LGE_AUDIO_DOCK
-	boolean "Audio dock workaround"
-	help
-	  Suspend event is generated before disconnect event when disconnect cable.
-	  In that case, device makes watchdog bark before disconnect.
-	  It is maden by audio writing on blocked ep.
-	  To avoid this issue, disable ep and stop playback on suspend event.
-
-	  Say y if this must be needed.
-
-	  default n
 endif # USB_GADGET

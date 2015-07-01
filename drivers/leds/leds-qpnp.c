@@ -2825,17 +2825,18 @@ static ssize_t pattern_id_store(struct device *dev,
 	struct pwm_config_data *pwm_cfg;
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 	ssize_t ret = -EINVAL;
+	bool is_timer_active = false;
 
 	ret = kstrtou8(buf, 10, &pattern_id);
 	if (ret)
-		return ret;
+		return -EINVAL;
 	led = container_of(led_cdev, struct qpnp_led_data, cdev);
 
 	pr_info("current pattern : %d, brightness : %d, period : %d\n",
 					led->ptrn_id, lg_led_patterns[led->ptrn_id].brightness_val, lg_led_patterns[led->ptrn_id].period_in_msec);
 
 	switch (pattern_id) {
-#if defined(CONFIG_MACH_MSM8916_STYLUSC_SPR_US)
+#if defined(CONFIG_MACH_MSM8916_STYLUSC_SPR_US) || defined(CONFIG_MACH_MSM8916_C90NAS_SPR_US)
 		case ID_MISSED_NOTI_ONCE:
 		case ID_LCD_ON:
 		case ID_FAILED_CHECKPASSWORD:
@@ -2863,6 +2864,9 @@ static ssize_t pattern_id_store(struct device *dev,
 		case ID_CHARGING_FULL:
 		case ID_STOP:
 			led->ptrn_id = ID_LED_OFF;
+			is_timer_active = (led->led_on_timer.state != HRTIMER_STATE_INACTIVE)? true: false;
+			if (is_timer_active)
+				hrtimer_cancel(&led->led_on_timer);
 			break;
 		case ID_AAT_LED_TEST:
 			led->ptrn_id = ID_LED_ON_500ms_IN_1000ms;
@@ -2895,6 +2899,9 @@ static ssize_t pattern_id_store(struct device *dev,
 		case ID_CHARGING_FULL:
 		case ID_STOP:
 			led->ptrn_id = ID_LED_OFF;
+			is_timer_active = (led->led_on_timer.state != HRTIMER_STATE_INACTIVE)? true: false;
+			if (is_timer_active)
+				hrtimer_cancel(&led->led_on_timer);
 			break;
 		case ID_AAT_LED_TEST:
 			led->ptrn_id = ID_LED_ON_500ms_IN_1000ms;
@@ -2923,7 +2930,7 @@ static ssize_t pattern_id_store(struct device *dev,
 	if (ret) {
 		dev_err(&led->spmi_dev->dev,
 			"Failed to write sink control reg\n");
-		return ret;
+		return -EINVAL;
 	}
 
 	pwm_free(pwm_cfg->pwm_dev);
@@ -2935,7 +2942,7 @@ static ssize_t pattern_id_store(struct device *dev,
 		qpnp_led_set(&led->cdev, previous_brightness);
 		dev_err(&led->spmi_dev->dev,
 			"Failed to initialize pwm with new pwm_us value\n");
-		return ret;
+		return -EINVAL;
 	}
 	if (lg_led_patterns[led->ptrn_id].repeat>0) {
 		hrtimer_cancel(&led->led_on_timer);
@@ -2944,6 +2951,8 @@ static ssize_t pattern_id_store(struct device *dev,
 		hrtimer_start(&led->led_on_timer,ktime_set(repeat_ms / 1000, (repeat_ms % 1000) * 1000000), HRTIMER_MODE_REL);
 	}
 	qpnp_led_set(&led->cdev, led->cdev.brightness);
+	if (is_timer_active)
+		msleep(80);
 	return count;
 }
 
@@ -2971,16 +2980,16 @@ static ssize_t time_store(struct device *dev,
 
 	ret = kstrtou32(buf, 10, &led_on_ms);
 	if (ret)
-		return ret;
+		return -EINVAL;
 	led = container_of(led_cdev, struct qpnp_led_data, cdev);
 	pwm_cfg = led->mpp_cfg->pwm_cfg;
 
 	previous_pwm_us = pwm_cfg->pwm_period_us;
 	previous_brightness = (u8)led->cdev.brightness;
-	pr_info("Previous Period = %u Brightness = %d \n",previous_pwm_us,previous_brightness);
+	//pr_info("Previous Period = %u Brightness = %d \n",previous_pwm_us,previous_brightness);
 
 	if (previous_brightness!=0)
-		return count;
+		return -EINVAL;
 
 	led->cdev.brightness = led->cdev.max_brightness;
 	pwm_cfg->pwm_period_us = 1 * USEC_PER_MSEC;
@@ -2994,12 +3003,77 @@ static ssize_t time_store(struct device *dev,
 		qpnp_led_set(&led->cdev, previous_brightness);
 		dev_err(&led->spmi_dev->dev,
 			"Failed to initialize pwm with new pwm_us value\n");
-		return ret;
+		return -EINVAL;
 	}
 	hrtimer_cancel(&led->led_on_timer);
 	hrtimer_start(&led->led_on_timer,ktime_set(led_on_ms / 1000, (led_on_ms % 1000) * 1000000),HRTIMER_MODE_REL);
 	qpnp_led_set(&led->cdev, led->cdev.brightness);
 	led_on_ms = 0;
+	return count;
+
+}
+
+static u32 onms, offms;
+static ssize_t time_on_off_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf,"on : %d off : %d\n",onms, offms);
+}
+
+static ssize_t time_on_off_store(struct device *dev,
+	struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	struct qpnp_led_data *led;
+	u8 previous_brightness;
+	u32 previous_pwm_us, tot_ms;
+
+	struct pwm_config_data *pwm_cfg;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	ssize_t ret = -EINVAL;
+	ret = sscanf(buf, "%d,%d", &onms, &offms);
+	if (ret!=2) {
+		pr_err("bad parameter\n");
+		return -EINVAL;
+	}
+
+	tot_ms = onms + offms;
+	if (tot_ms > 15000 || tot_ms <0) {
+		pr_err("pwm period not supported\n");
+		return -EINVAL;
+	}
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+	pwm_cfg = led->mpp_cfg->pwm_cfg;
+
+	previous_pwm_us = pwm_cfg->pwm_period_us;
+	previous_brightness = (u8)led->cdev.brightness;
+	//pr_info("Previous Period = %u Brightness = %d \n",previous_pwm_us,previous_brightness);
+
+	if (tot_ms == 0) {
+		pwm_cfg->pwm_period_us = 0;
+		led->cdev.brightness = 0;
+	}
+	else {
+		pwm_cfg->pwm_period_us = tot_ms * USEC_PER_MSEC;
+		led->cdev.brightness = (u8)((onms * 255)/tot_ms);
+	}
+	if (previous_brightness!=0)
+		return -EINVAL;
+
+	pr_info("Current Period = %u Brightness = %d \n",pwm_cfg->pwm_period_us,led->cdev.brightness);
+	pwm_free(pwm_cfg->pwm_dev);
+	ret = qpnp_pwm_init(pwm_cfg, led->spmi_dev, led->cdev.name);
+	if (ret) {
+		pwm_cfg->pwm_period_us = previous_pwm_us;
+		pwm_free(pwm_cfg->pwm_dev);
+		qpnp_pwm_init(pwm_cfg, led->spmi_dev, led->cdev.name);
+		qpnp_led_set(&led->cdev, previous_brightness);
+		dev_err(&led->spmi_dev->dev,
+			"Failed to initialize pwm with new pwm_us value\n");
+		return -EINVAL;
+	}
+	qpnp_led_set(&led->cdev, led->cdev.brightness);
 	return count;
 
 }
@@ -3014,14 +3088,16 @@ static enum hrtimer_restart led_on_timer_func(struct hrtimer *timer)
 	struct qpnp_led_data *led = container_of(timer, struct qpnp_led_data, led_on_timer);
 	qpnp_led_set(&led->cdev,LED_OFF);
 	return HRTIMER_NORESTART;
- }
+}
 
 static DEVICE_ATTR(pattern_id, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH, pattern_id_show, pattern_id_store);
 static DEVICE_ATTR(timed, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH, time_show, time_store);
+static DEVICE_ATTR(time_on_off, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH, time_on_off_show, time_on_off_store);
 
 static struct attribute *red_attrs[] = {
 	&dev_attr_pattern_id.attr,
 	&dev_attr_timed.attr,
+	&dev_attr_time_on_off.attr,
 	NULL
 };
 static const struct attribute_group red_attr_group = {

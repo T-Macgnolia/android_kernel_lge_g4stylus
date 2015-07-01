@@ -198,11 +198,9 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 				mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0);
 				mdata->bucket -= mdata->skip_value;
 			} else {
-				pr_info("%s: skipped !!!!!!!!\n", __func__);
 				mdata->skip_count++;
 			}
-		} else
-		{
+		} else {
 			mdss_mdp_intr_done(MDP_INTR_VSYNC_INTF_1);
 			mdss_misr_crc_collect(mdata, DISPLAY_MISR_DSI0);
 		}

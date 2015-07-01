@@ -43,9 +43,9 @@
 		 avago,ps_pulse = <6>;
 		 avago,ps_pgain = <0x08>;
 		 avago,als_B = <186>;
-		 avago,als_C = <73>;
+		 avago,als_C = <74>;
 		 avago,als_D = <132>;
-		 avago,ga_value = <134>;
+		 avago,ga_value = <223>;
 		 avago,default-cal;
 		 avago,i2c-pull-up;
 	 };

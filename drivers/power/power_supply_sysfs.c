@@ -303,6 +303,9 @@ static struct device_attribute power_supply_attrs[] = {
 #ifdef CONFIG_LGE_PM_PSEUDO_BATTERY
 	PSEUDO_BATT_ATTR(pseudo_batt),
 #endif
+#ifdef CONFIG_LGE_PM_USB_CURRENT_MAX
+	POWER_SUPPLY_ATTR(usb_current_max),
+#endif
 #ifdef CONFIG_LGE_PM
 	POWER_SUPPLY_ATTR(safety_timer),
 #endif
@@ -311,12 +314,16 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(removed),
 #elif defined (CONFIG_LGE_PM_CHARGING_BQ24262_CHARGER)
 	POWER_SUPPLY_ATTR(ext_pwr),
+#ifdef CONFIG_LGE_PM_CHARGING_USING_AICL
+	POWER_SUPPLY_ATTR(aicl),
+#endif
 #endif
 #ifdef CONFIG_LGE_PM_CHARGING_VZW_POWER_REQ
 	POWER_SUPPLY_ATTR(vzw_chg),
 #endif
 #ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
 	POWER_SUPPLY_ATTR(valid_batt_id),
+	POWER_SUPPLY_ATTR(check_batt_id_for_aat),
 #endif
 #if defined (CONFIG_LGE_PM_CHARGING_BQ24296_CHARGER) || defined (CONFIG_LGE_PM_CHARGING_BQ24262_CHARGER)
         POWER_SUPPLY_ATTR(charger_timer),

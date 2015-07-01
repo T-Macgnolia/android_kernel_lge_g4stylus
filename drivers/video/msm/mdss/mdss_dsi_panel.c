@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -50,6 +50,7 @@ extern void lm3632_set_knock_on_mode(void);
 extern void lm3632_unset_knock_on_mode(void);
 extern void lm3632_UVP_enable(void);
 extern void lm3632_bl_en_control(int enable);
+extern void lm3632_dsv_output_ctrl(int enable);
 /* for ESD protection : interrupt & UVP. */
 //#define TD4191_ESD_INTERRUPT 1
 //#define LM3632_UVP_ENABLE 1
@@ -597,6 +598,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				if (gpio_is_valid(ctrl_pdata->disp_dsv_en_gpio)) {
 				    gpio_set_value((ctrl_pdata->disp_dsv_en_gpio), 0);
 				}
+				lm3632_dsv_output_ctrl(0);
 				//lm3632_dsv_fd_ctrl();
 				pr_info("[LCD] End LCD power down when LCD on\n");
 				usleep(12 * 1000);
@@ -614,6 +616,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				if (gpio_is_valid(ctrl_pdata->disp_dsv_en_gpio)) {
 					gpio_set_value((ctrl_pdata->disp_dsv_en_gpio), 1);
 				}
+				lm3632_dsv_output_ctrl(1);
 				usleep(6 * 1000);
 				pr_info("[LCD] End LCD power up when LCD on\n");
 			} else {
@@ -658,6 +661,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		if (gpio_is_valid(ctrl_pdata->disp_dsv_en_gpio)) {
 			gpio_set_value((ctrl_pdata->disp_dsv_en_gpio), 0);
 		}
+		lm3632_dsv_output_ctrl(0);
 		lm3632_dsv_fd_ctrl();
 		if (gpio_is_valid(ctrl_pdata->disp_lcd_ldo_3v0_gpio)) {
 			gpio_set_value((ctrl_pdata->disp_lcd_ldo_3v0_gpio), 0);
@@ -918,7 +922,7 @@ int DSV_DW8768_CTRL(struct mdss_panel_data *pdata, int enable)
 		gpio_set_value((ctrl_pdata->disp_dsv_n_gpio), 1); //DSV ENN
 		pr_info("%s:DSV_CTRL ON \n",__func__);
 	} else {
-		gpio_set_value(ctrl_pdata->disp_dsv_p_gpio, 0);
+		gpio_set_value(ctrl_pdata->disp_dsv_p_gpio, 0);// do we need it??if ENM is low, VNEG/VPOS are turned off.
 		gpio_set_value((ctrl_pdata->disp_dsv_n_gpio), 0);
 		pr_info("%s:DSV_CTRL OFF \n",__func__);
 	}
@@ -943,6 +947,7 @@ int EXT_VDD_LDO_CTRL(struct mdss_panel_data *pdata, int enable)
 		gpio_set_value((ctrl_pdata->disp_ext_vdd_gpio), 1);
 		pr_info("%s:EXT_VDD_CTRL ON \n",__func__);
 	} else {
+		mdelay(12);
 		gpio_set_value((ctrl_pdata->disp_ext_vdd_gpio), 0);
 		pr_info("%s:EXT_VDD_CTRL OFF \n",__func__);
 	}
@@ -1108,6 +1113,7 @@ void mdss_lcd_dsv_control(int enable)
 		if (gpio_is_valid(ctrl_pdata->disp_dsv_en_gpio)) {
 			gpio_set_value((ctrl_pdata->disp_dsv_en_gpio), 0);
 		}
+		lm3632_dsv_output_ctrl(0);
 		lm3632_bl_en_control(0);
 	}
 	else {
@@ -1503,14 +1509,25 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 			goto end;
 	}
 
-	if (ctrl->off_cmds.cmd_cnt)
+	if (ctrl->off_cmds.cmd_cnt) {
 #if defined(CONFIG_BACKLIGHT_RT8542)
 		if (lge_get_boot_mode() == LGE_BOOT_MODE_CHARGERLOGO) {
 			rt8542_lcd_backlight_set_level(0);
 		}
 #endif
+#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+	        if (ts_data != NULL) {
+		        mutex_lock(&ts_data->pdata->thread_lock);
+		}
 		pr_info("[LCD] send off command\n");
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
+	        if ((ts_data != NULL) && mutex_is_locked(&ts_data->pdata->thread_lock))
+		        mutex_unlock(&ts_data->pdata->thread_lock);
+#else
+		pr_info("[LCD] send off command\n");
+		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds);
+#endif
+        }
 #if defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL)
 	if (/*!is_dsv_cont_splash_screening_f && */gpio_is_valid(ctrl->disp_en_gpio)){
 		if (gpio_is_valid(ctrl->disp_en_gpio)) {
@@ -2619,6 +2636,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 
 	pinfo->dynamic_switch_pending = false;
 	pinfo->is_lpm_mode = false;
+	pinfo->esd_rdy = false;
 
 	ctrl_pdata->on = mdss_dsi_panel_on;
 	ctrl_pdata->off = mdss_dsi_panel_off;

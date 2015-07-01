@@ -201,7 +201,7 @@ void lm3697_lcd_backlight_set_level(int level)
 #ifdef CONFIG_MACH_LGE
 	pdata = lm3697_bl->bl_pdata;
 
-	if (lge_get_boot_mode() == LGE_BOOT_MODE_QEM_56K) {
+	if (lge_get_boot_mode() == LGE_BOOT_MODE_QEM_130K) {
 		pr_info("%s : factory mode! Will not turn on backlight.\n", __func__);
 		level = 0;
 	}
@@ -606,6 +606,13 @@ static int lm3697_bl_parse_dt(struct device *dev, struct lm3697_bl_chip *chip)
 		of_property_read_u32(child, "max-current-milliamp", &imax_mA);
 		bl_pdata[i].imax = lm3697_get_current_code(imax_mA);
 
+#ifdef CONFIG_LGE_LCD_OFF_DIMMING
+		if ((lge_get_bootreason() == 0x77665560) || (lge_get_bootreason() == 0x77665561)
+					   || (lge_get_bootreason() == 0x77665562)) {
+			pr_info("%s : lcd dimming mode! set default dimming brightness.\n",__func__);
+			bl_pdata[i].init_brightness = 10;
+		} else
+#endif
 		of_property_read_u32(child, "initial-brightness",
 				     &bl_pdata[i].init_brightness);
 
@@ -733,19 +740,10 @@ static struct lm3697_bl *lm3697_bl_register(struct lm3697_bl_chip *chip)
 			goto cleanup_backlights;
 		}
 
-#ifdef CONFIG_LGE_LCD_OFF_DIMMING
-		if ((lge_get_bootreason() == 0x77665560) || (lge_get_bootreason() == 0x77665561)) {
-			each->bl_dev->props.brightness = 50;
-			pr_info("%s : fota reboot - backlight set 50\n", __func__);
-		}
-#endif
-		if (lge_get_boot_mode() == LGE_BOOT_MODE_QEM_56K) {
-			each->bl_dev->props.brightness = 0;
-			pr_info("%s : 130K is connected \n", __func__);
-		} else {
-			backlight_status = BL_ON;
-			backlight_update_status(each->bl_dev);
-		}
+		/* TODO: check this flag's operation more
+		   need to check the bl status in cace of bl off in previuos
+		   mode  */
+		backlight_status = BL_ON;
 	}
 
 	return lm3697_bl;

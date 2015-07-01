@@ -32,6 +32,10 @@
 		qcom,mdss-dsi-underflow-color = <0x0>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [
+			/* 0. Manufacturer Command (Gamma on Time Control) */
+			39 01 00 00 00 00 10
+			F0 01 02 04 08 07 08 08 08 08 0C 1A 1B 1C 1E 44
+
 			/* 1. GREF Control */
 			39 01 00 00 00 00 08
 			B7 00 1C 1C 1C 1C 1C 1C
@@ -197,6 +201,10 @@
 		qcom,mdss-dsi-underflow-color = <0x0>;
 		qcom,mdss-dsi-border-color = <0>;
 		qcom,mdss-dsi-on-command = [
+			/* 0. Manufacturer Command (Gamma on Time Control) */
+			39 01 00 00 00 00 10
+			F0 01 02 04 08 07 08 08 08 08 0C 1A 1B 1C 1E 44
+
 			/* 1. GREF Control */
 			39 01 00 00 00 00 08
 			B7 00 1C 1C 1C 1C 1C 1C
@@ -209,7 +217,7 @@
 			39 01 00 00 00 00 05
 			B8 00 42 12 F7
 
-			/* 4. Manufacturer Commnad Access Project */
+			/* 4. Manufacturer Commnad Access Protect */
 			15 01 00 00 00 00 02
 			B0 00
 
@@ -239,7 +247,7 @@
 
 			/* 11. VCOM Control2 */
 			15 01 00 00 00 00 02
-			BB 35
+			BB 2A
 
 			/* 12. Set Address Mode */
 			15 01 00 00 00 00 02
@@ -267,17 +275,17 @@
 
 			/* 19~24. Gamma Curve for RGB */
 			39 01 00 00 00 00 0A
-			D0 20 54 53 11 00 00 42 03 02
+			D0 20 54 55 13 00 00 42 03 02
 			39 01 00 00 00 00 0A
-			D1 20 54 53 11 08 00 42 03 02
+			D1 20 54 55 13 00 00 42 03 02
 			39 01 00 00 00 00 0A
-			D2 20 54 53 11 00 00 42 03 02
+			D2 20 54 55 13 00 00 42 03 02
 			39 01 00 00 00 00 0A
-			D3 20 54 53 11 08 00 42 03 02
+			D3 20 54 55 13 00 00 42 03 02
 			39 01 00 00 00 00 0A
-			D4 20 54 53 11 00 00 40 03 02
+			D4 20 54 55 13 00 00 42 03 02
 			39 01 00 00 00 00 0A
-			D5 20 54 53 11 08 00 40 03 02
+			D5 20 54 55 13 00 00 42 03 02
 
 		];
 		lge,display-on-cmds = [

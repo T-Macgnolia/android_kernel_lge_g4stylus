@@ -219,6 +219,7 @@
 				 <&clock_gcc clk_gcc_camss_mclk0_clk>;
 		clock-names = "cam_src_clk", "cam_clk";
 		qcom,mclk-23880000;
+		lge,vcm-pwdn = "dw9718";
 	};
 
 	qcom,camera@40 {
@@ -268,6 +269,7 @@
 				 <&clock_gcc clk_gcc_camss_mclk0_clk>;
 		clock-names = "cam_src_clk", "cam_clk";
 		qcom,mclk-23880000;
+		lge,vcm-pwdn = "dw9718";
 	};
 
 	qcom,camera@6c {

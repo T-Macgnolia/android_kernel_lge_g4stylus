@@ -5088,7 +5088,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #endif
     )
     {
-        wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM;
+        //wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM;
     }
 #endif
 #ifdef FEATURE_WLAN_TDLS

@@ -54,6 +54,8 @@ struct workqueue_struct         *touch_wq;
 int lockscreen_stat = 0;
 int ime_stat = 0;
 int quick_cover_status = 0;
+int use_quick_window = 0;
+extern int cradle_smart_cover_status(void);
 
 struct timeval t_ex_debug[EX_PROFILE_MAX];
 bool ghost_detection = 0;
@@ -667,7 +669,9 @@ static enum filter_return_type quickcover_filter(struct i2c_client *client,
 		if (id < 0 || id >= MAX_FINGER)
 			continue;
 
-		if (quick_cover_status == QUICKCOVER_OPEN)
+		if ((quick_cover_status == QUICKCOVER_OPEN
+			&& cradle_smart_cover_status() == QUICKCOVER_OPEN)
+			|| !use_quick_window)
 			continue;
 
 		if (info->data.quickcover_mask & (1 << id)) {
@@ -1235,6 +1239,35 @@ bool chk_time_interval(struct timeval t_aft, struct timeval t_bef, int t_val)
 	}
 
 	return false;
+}
+
+int rebase(struct lge_touch_data *ts)
+{
+	TOUCH_TRACE();
+	TOUCH_INFO_MSG("reset_control start\n");
+	if (atomic_read(&ts->state.upgrade_state) == UPGRADE_START) {
+		TOUCH_DEBUG(DEBUG_BASE_INFO,
+				"'Firmware-upgrade' is not finished,"
+				"so power cannot be changed.\n");
+			return 0;
+	} else if (atomic_read(&ts->state.crack_test_state)
+				== CRACK_TEST_START) {
+		TOUCH_INFO_MSG("Crack Test in not finished, "
+				"so power cannot be changed.\n");
+		return 0;
+	}
+	touch_disable_irq(ts->client->irq);
+	if (ts->input_dev != NULL)
+		release_all_touch_event(ts);
+
+	DO_IF(touch_device_func->reset (ts->client, 1) != 0, error);
+	touch_enable_irq(ts->client->irq);
+	TOUCH_INFO_MSG("reset_control end\n");
+	return 0;
+error:
+	TOUCH_ERR_MSG("%s, %d : reset control failed\n", __func__, __LINE__);
+	enable_irq(ts->client->irq);
+	return -1;
 }
 
 int rebase_ic(struct lge_touch_data *ts)
@@ -2176,6 +2209,16 @@ static ssize_t store_power_ctrl(struct i2c_client *client,
 	return count;
 }
 
+static ssize_t show_rebase(struct i2c_client *client, char *buf)
+{
+	struct lge_touch_data *ts = i2c_get_clientdata(client);
+	u32 ret = 0;
+	mutex_lock(&ts->pdata->thread_lock);
+	TOUCH_DEBUG(DEBUG_BASE_INFO, "%s\n", __func__);
+	rebase(ts);
+	mutex_unlock(&ts->pdata->thread_lock);
+	return ret;
+}
 
 /* Sysfs -ic_rw
  *
@@ -2195,14 +2238,14 @@ static ssize_t show_ic_rw(struct i2c_client *client, char *buf)
 
 	if (atomic_read(&ts->state.power_state) != POWER_ON)
 		return ret;
-
+	mutex_lock(&ts->pdata->thread_lock);
 	do {
 		touch_device_func->ic_ctrl(ts->client,
 				IC_CTRL_READ, reg++, &tmp);
 		ret += sprintf(buf+ret, "%d\n", tmp);
 	} while (--value > 0);
-
 	TOUCH_DEBUG(DEBUG_BASE_INFO, "%s\n", buf);
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -2278,6 +2321,7 @@ static ssize_t store_notify(struct i2c_client *client,
 	return count;
 }
 
+#if 0
 /* Sysfs - firmware_upgrade
  *
  * store_upgrade : upgrade the firmware.
@@ -2314,6 +2358,7 @@ static ssize_t show_recovery(struct i2c_client *client, char *buf)
 
 	return ret;
 }
+#endif
 
 /* Sysfs - firmware_upgrade
  *
@@ -2708,15 +2753,38 @@ static ssize_t store_lpwg_debug_reason(struct i2c_client *client,
 	return count;
 }
 
+static ssize_t store_use_quick_window(struct i2c_client *client,
+		const char *buf, size_t count)
+{
+	int value;
+	sscanf(buf, "%d", &value);
+
+	if( (value == 1) && (use_quick_window == 0) )
+		use_quick_window = 1;
+	else if( (value == 0) && (use_quick_window == 1) )
+		use_quick_window = 0;
+	else
+		return count;
+
+	TOUCH_INFO_MSG("use quick window = %s\n",
+			(use_quick_window == 1) ?
+			"USE_QUICK_WIN" : "UNUSE_QUICK_WIN");
+
+	return count;
+}
+
 static LGE_TOUCH_ATTR(platform_data,
 		S_IRUGO | S_IWUSR, show_platform_data, store_platform_data);
 static LGE_TOUCH_ATTR(power_ctrl, S_IRUGO | S_IWUSR, show_power_ctrl, store_power_ctrl);
+static LGE_TOUCH_ATTR(rebase, S_IRUGO | S_IWUSR, show_rebase, NULL);
 static LGE_TOUCH_ATTR(ic_rw, S_IRUGO | S_IWUSR, show_ic_rw, store_ic_rw);
 static LGE_TOUCH_ATTR(notify, S_IRUGO | S_IWUSR, show_notify, store_notify);
 static LGE_TOUCH_ATTR(fw_upgrade, S_IRUGO | S_IWUSR,
 		show_upgrade, store_upgrade);
+#if 0
 static LGE_TOUCH_ATTR(fw_recovery, S_IRUGO | S_IWUSR,
 		show_recovery, store_recovery);
+#endif
 static LGE_TOUCH_ATTR(lpwg_data,
 		S_IRUGO | S_IWUSR, show_lpwg_data, store_lpwg_data);
 static LGE_TOUCH_ATTR(lpwg_notify, S_IRUGO | S_IWUSR, NULL, store_lpwg_notify);
@@ -2733,15 +2801,19 @@ static LGE_TOUCH_ATTR(lpwg_all, S_IRUGO | S_IWUSR,
 		show_lpwg_all, store_lpwg_all);
 static LGE_TOUCH_ATTR(lpwg_debug_reason, S_IRUGO | S_IWUSR,
 		show_lpwg_debug_reason, store_lpwg_debug_reason);
-
+static LGE_TOUCH_ATTR(use_quick_window, S_IRUGO | S_IWUSR,
+		NULL, store_use_quick_window);
 
 static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_platform_data.attr,
 	&lge_touch_attr_power_ctrl.attr,
+	&lge_touch_attr_rebase.attr,
 	&lge_touch_attr_ic_rw.attr,
 	&lge_touch_attr_notify.attr,
 	&lge_touch_attr_fw_upgrade.attr,
+#if 0
 	&lge_touch_attr_fw_recovery.attr,
+#endif
 	&lge_touch_attr_lpwg_data.attr,
 	&lge_touch_attr_lpwg_notify.attr,
 	&lge_touch_attr_keyguard.attr,
@@ -2751,6 +2823,7 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_crack_status.attr,
 	&lge_touch_attr_lpwg_all.attr,
 	&lge_touch_attr_lpwg_debug_reason.attr,
+	&lge_touch_attr_use_quick_window.attr,
 	NULL,
 };
 

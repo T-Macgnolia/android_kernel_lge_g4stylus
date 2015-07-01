@@ -155,10 +155,24 @@ static int mit_fw_version_check(struct mms_data *ts, struct touch_fw_info *info)
 		memcpy(bin_product_id, &info->fw->data[0xFFE0], sizeof(char) * strlen(&info->fw->data[0xFFE0]));
 	}
 
-	if (strcmp(ts->pdata->fw_product, bin_product_id) != 0) {
-		TOUCH_INFO_MSG("F/W Product is not matched [Origin:%s][IC:%s][Binary:%s] \n",ts->pdata->fw_product,ts->module.product_code,bin_product_id);
+	if ((strcmp(ts->pdata->fw_product, bin_product_id) != 0) && (strcmp(ts->pdata->p5_fw_product, bin_product_id) != 0)) {
+		if (dual_panel) {
+			TOUCH_INFO_MSG("F/W Product is not matched [Origin(P5) : %s] [IC : %s] [Binary : %s]\n",
+				ts->pdata->p5_fw_product,
+				ts->module.product_code,
+				bin_product_id);
+		} else {
+			TOUCH_INFO_MSG("F/W Product is not matched [Origin(P4) : %s] [IC : %s] [Binary : %s]\n",
+				ts->pdata->fw_product,
+				ts->module.product_code,
+				bin_product_id);
+		}
 		if (strncmp(old_product_id, bin_product_id, 8) == 0) {
-			TOUCH_ERR_MSG("Force F/W Upgrade Start - CY/K Product ID : [%s]\n",ts->pdata->fw_product);
+			if (dual_panel) {
+				TOUCH_INFO_MSG("Force F/W Upgrade Start - CY/K P5 Product ID : [%s]\n", ts->pdata->p5_fw_product);
+			} else {
+				TOUCH_INFO_MSG("Force F/W Upgrade Start - CY/K Product ID : [%s]\n", ts->pdata->fw_product);
+			}
 			return 2;
 		}
 		if (ts->module.product_code[0] == 0)
@@ -174,7 +188,7 @@ static int mit_fw_version_check(struct mms_data *ts, struct touch_fw_info *info)
 		target[0] = info->fw->data[0xFFFA];
 		target[1] = info->fw->data[0xFFFB];
 
-		TOUCH_INFO_MSG("File Version : %X.%02X\n", target[0], target[1]);
+		TOUCH_INFO_MSG("File(Binary) Version : %X.%02X\n", target[0], target[1]);
 
 		if (ver[0] == target[0] && ver[1] == target[1]) {
 			TOUCH_INFO_MSG("F/W is already updated \n");

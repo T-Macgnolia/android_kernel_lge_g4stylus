@@ -45,6 +45,7 @@
                         linux,reserve-contiguous-region;
                         linux,memory-limit = <0x90000000>;
                         reg = <0 0 0 0x0500000>;
+                        linux,reserve-region;
                         label = "venus_qseecom_mem";
                 };
 

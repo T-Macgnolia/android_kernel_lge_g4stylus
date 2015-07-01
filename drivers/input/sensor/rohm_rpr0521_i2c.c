@@ -41,6 +41,8 @@
 #include <linux/of_gpio.h>
 #endif
 
+#include <mach/board_lge.h>
+
 #define MODULE_TAG "<rpr0521>"
 #include "bs_log.h"
 #include "rohm_rpr0521_i2c.h"
@@ -53,7 +55,7 @@
 #define PS_THRESHOLD_MIN (0)
 #define ALS_THRESHOLD_MAX (65535)
 #define ALS_THRESHOLD_MIN (0)
-#define DEFAULT_CROSS_TALK (50)
+#define DEFAULT_CROSS_TALK (9)
 #define ALSCALC_OFFSET (1000)
 #define ALS_MAX_VALUE (43000)
 #define ALSCALC_GAIN_MASK (0xF << 2)
@@ -123,6 +125,7 @@ typedef struct {
 	unsigned short		alsth_low;
 	bool				ps_value;			/* near=true, far=false			*/
 	int					lux_value;
+	int 				boot_mode;
 	bool				is_interrupt;
 	bool				is_timer;
 	bool				is_calibrated;
@@ -140,6 +143,7 @@ static int                  get_from_device(DEVICE_VAL *calc_data, struct i2c_cl
 //static int                  long_long_divider(long long data, unsigned long base_divier, unsigned long *answer, unsigned long long *overplus);
 //static int                  calculate_als_data(READ_DATA_BUF data, DEVICE_VAL dev_val, struct i2c_client *client);
 //static int                  calculate_ps_data(READ_DATA_BUF data, DEVICE_VAL dev_val, struct i2c_client *client);
+static int 					get_boot_mode(void);
 static int 					lux_calculation(void);
 static int 					get_alsgain( struct i2c_client *client, unsigned char *raw_gain, unsigned char *gain);
 static int 					set_alsgain( struct i2c_client *client, unsigned char raw_gain, signed long lux);
@@ -435,7 +439,7 @@ static ssize_t rpr0521_store_enable(struct device *dev, struct device_attribute 
 		}
 		else if(is_light){
 			/* start timer of 1 second */
-			result = hrtimer_start(&ps_als_ginfo->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
+			result = hrtimer_start(&ps_als_ginfo->timer, ktime_set(0, 125000000), HRTIMER_MODE_REL);
 			if (result != 0) {
 				PINFO("can't start timer\n");
 				goto unlock;
@@ -524,6 +528,7 @@ static ssize_t rpr0521_store_near_offset(struct device *dev, struct device_attri
 {
 	unsigned long val = simple_strtoul(buf, NULL, 10);
 	ps_als_ginfo->config.near_offset = val;
+	make_init_data(ps_als_ginfo);
 	return count;
 }
 
@@ -536,6 +541,7 @@ static ssize_t rpr0521_store_far_offset(struct device *dev, struct device_attrib
 {
 	unsigned long val = simple_strtoul(buf, NULL, 10);
 	ps_als_ginfo->config.far_offset= val;
+	make_init_data(ps_als_ginfo);
 	return count;
 }
 
@@ -548,6 +554,7 @@ static ssize_t rpr0521_store_ps_gain(struct device *dev, struct device_attribute
 {
 	unsigned long val = simple_strtoul(buf, NULL, 10);
 	ps_als_ginfo->config.ps_gain = val;
+	make_init_data(ps_als_ginfo);
 	return count;
 }
 
@@ -560,6 +567,7 @@ static ssize_t rpr0521_store_led_current(struct device *dev, struct device_attri
 {
 	unsigned long val = simple_strtoul(buf, NULL, 10);
 	ps_als_ginfo->config.led_current = val;
+	make_init_data(ps_als_ginfo);
 	return count;
 }
 
@@ -572,6 +580,7 @@ static ssize_t rpr0521_store_infrared_level(struct device *dev, struct device_at
 {
 	unsigned long val = simple_strtoul(buf, NULL, 10);
 	ps_als_ginfo->config.infrared_level = val;
+	make_init_data(ps_als_ginfo);
 	return count;
 }
 
@@ -904,6 +913,14 @@ static int get_from_device(DEVICE_VAL *dev_val, struct i2c_client *client)
 #undef GAIN_VAL_MASK
 }
 
+static int get_boot_mode()
+{
+	enum lge_boot_mode_type lge_boot_mode;
+	lge_boot_mode = lge_get_boot_mode();
+
+	return lge_boot_mode;
+}
+
 static int lux_calculation()
 {
     /* TODO : calculation lux value with alsdata0 and alsdata1
@@ -928,6 +945,17 @@ static int lux_calculation()
 	data0 = ps_als_ginfo->als_data0;
 	data1 = ps_als_ginfo->als_data1;
 	get_alsgain(ps_als_ginfo->client, &raw_gain, &als_gain);
+
+	/* Check boot mode */
+	if(ps_als_ginfo->boot_mode != LGE_BOOT_MODE_NORMAL) {
+		lux = data0;
+
+		if( als_gain == 64 ) {
+			lux = data0 / als_gain;
+		}
+
+		return lux;
+	}
 
 	/* IF      D1/ D0 < 1.13  : case 0 */
     /* ELSE IF D1/ D0 < 1.424 : case 1 */
@@ -964,13 +992,6 @@ static int lux_calculation()
 	PINFO("rpr0521_lux_calculation : lux_result = %d", lux);
 	result = set_alsgain(ps_als_ginfo->client, raw_gain, lux);
 #endif
-	if(lux >= 10 && lux <= 30) {
-		lux = lux/2;
-	} else if(lux < 10 && lux > 4) {
-		lux -= 4;
-	} else if(lux <= 4) {
-		lux = 0;
-	}
 
 	return (lux);
 }
@@ -1301,6 +1322,7 @@ static int make_init_data(PS_ALS_DATA *ps_als)
 	ps_als->config.init_data.psth_low = ps_als->config.far_offset;;
 	ps_als->config.init_data.alsth_upper = PS_ALS_SET_ALS_TH;
 	ps_als->config.init_data.alsth_low = PS_ALS_SET_ALS_TL;
+	ps_als->boot_mode 					 = get_boot_mode();
 #else
 	ps_als->config.init_data.mode_ctl    = PS_ALS_SET_MODE_CONTROL;
 	ps_als->config.init_data.psals_ctl   = PS_ALS_SET_ALSPS_CONTROL;
@@ -1318,7 +1340,7 @@ static int make_init_data(PS_ALS_DATA *ps_als)
 	PINFO("psth_upper = %d", ps_als->config.init_data.psth_upper);
 	PINFO("psth_low = %d", ps_als->config.init_data.psth_low);
 	PINFO("default_cross_talk = %d", ps_als->default_cross_talk);
-
+	PINFO("boot_mode = %d", ps_als->boot_mode);
 	return 0;
 }
 
@@ -1766,7 +1788,7 @@ static int ps_als_probe(struct i2c_client *client, const struct i2c_device_id *i
 
 	/*                   */
     /* initialize static variable */
-    ps_als->delay_time = 500;
+    ps_als->delay_time = 125;
     ps_als->fopen_cnt = 0;
 	ps_als->cross_talk = 0;
 	ps_als->adjusted_psth_upper = 0;

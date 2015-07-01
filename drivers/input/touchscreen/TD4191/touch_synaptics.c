@@ -371,10 +371,8 @@ void write_firmware_version_log(struct synaptics_ts_data *ts)
 	version_string = kzalloc(448 * sizeof(char), GFP_KERNEL);
 
 	if (mfts_enable) {
-		mutex_lock(&ts->pdata->thread_lock);
 		read_page_description_table(ts->client);
 		rc = get_ic_info(ts);
-		mutex_unlock(&ts->pdata->thread_lock);
 
 		if (rc < 0) {
 			ver_outbuf += snprintf(version_string+ver_outbuf, 448-ver_outbuf, "-1\n");
@@ -1702,8 +1700,10 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 	int ret = 0;
 	int rc = 0;
 
+	mutex_lock(&ts->pdata->thread_lock);
 	read_page_description_table(ts->client);
 	rc = get_ic_info(ts);
+
 	if (rc < 0) {
 		ret += snprintf(buf+ret,
 				PAGE_SIZE,
@@ -1711,6 +1711,7 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 		ret += snprintf(buf+ret,
 				PAGE_SIZE-ret,
 				"Read Fail Touch IC Info.\n");
+		mutex_unlock(&ts->pdata->thread_lock);
 		return ret;
 	}
 	ret = snprintf(buf+ret,
@@ -1794,7 +1795,7 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 	} else if (!strncmp(ts->fw_info.fw_image_product_id, "PLG298", 6)) {
 		ret += snprintf(buf + ret, PAGE_SIZE - ret,
 				"Touch IC : s3621\n");
-    } else if (!strncmp(ts->fw_info.fw_image_product_id, "PLG463", 6)) {
+	} else if (!strncmp(ts->fw_info.fw_image_product_id, "PLG463", 6)) {
 		ret += snprintf(buf+ret,
 				PAGE_SIZE-ret,
 				"Touch IC : td4191(family_id=%d, fw_rev=%d)\n\n",
@@ -1810,7 +1811,7 @@ static ssize_t show_firmware(struct i2c_client *client, char *buf)
 		ret += snprintf(buf + ret, PAGE_SIZE - ret,
 				"Touch product ID read fail\n");
 	}
-
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -1821,11 +1822,14 @@ static ssize_t show_synaptics_fw_version(struct i2c_client *client, char *buf)
 	int ret = 0;
 	int rc = 0;
 
+	mutex_lock(&ts->pdata->thread_lock);
 	read_page_description_table(ts->client);
 	rc = get_ic_info(ts);
+
 	if (rc < 0) {
 		ret += snprintf(buf+ret, PAGE_SIZE-ret, "-1\n");
 		ret += snprintf(buf+ret, PAGE_SIZE-ret, "Read Fail Touch IC Info.\n");
+		mutex_unlock(&ts->pdata->thread_lock);
 		return ret;
 	}
 	ret = snprintf(buf+ret, PAGE_SIZE-ret, "\n======== Auto Touch Test ========\n");
@@ -1871,7 +1875,7 @@ static ssize_t show_synaptics_fw_version(struct i2c_client *client, char *buf)
 		ret += snprintf(buf + ret, PAGE_SIZE - ret,
 				"Touch product ID read fail\n\n");
 	}
-
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -1891,9 +1895,11 @@ static ssize_t show_sd(struct i2c_client *client, char *buf)
 	int len = 0;
 	if (power_state == POWER_ON || power_state == POWER_WAKE) {
 
+		mutex_lock(&ts->pdata->thread_lock);
 		temp_buf = kzalloc(100, GFP_KERNEL);
 		if (!temp_buf) {
 			TOUCH_INFO_MSG("%s Failed to allocate memory\n", __func__);
+			mutex_unlock(&ts->pdata->thread_lock);
 			return 0;
 		}
 		write_time_log(NULL, NULL, 0);
@@ -1980,7 +1986,6 @@ static ssize_t show_sd(struct i2c_client *client, char *buf)
 		} else {
 			touch_enable_irq(ts->client->irq);
 		}
-
 		msleep(30);
 
 
@@ -2021,14 +2026,14 @@ static ssize_t show_sd(struct i2c_client *client, char *buf)
 				"Raw Data : %s",
 				(full_raw_cap > 0) ? "Pass\n" : "Fail\n");
 
+		kfree(temp_buf);
+		mutex_unlock(&ts->pdata->thread_lock);
 	} else {
 		write_time_log(NULL, NULL, 0);
 		ret += snprintf(buf+ret,
 				PAGE_SIZE-ret,
 				"state=[suspend]. we cannot use I2C, now. Test Result: Fail\n");
 	}
-
-	kfree(temp_buf);
 
 	return ret;
 }
@@ -2042,6 +2047,7 @@ static ssize_t show_rawdata(struct i2c_client *client, char *buf)
 	int full_raw_upper_ret = 0;
 	int ret = 0;
 
+	mutex_lock(&ts->pdata->thread_lock);
 	touch_disable_irq(ts->client->irq);
 
 	if (need_scan_pdt) {
@@ -2090,6 +2096,7 @@ static ssize_t show_rawdata(struct i2c_client *client, char *buf)
 
 	if (ret == 0)
 		ret += snprintf(buf + ret, PAGE_SIZE-ret, "ERROR: full_raw_cap failed.\n");
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -2157,7 +2164,7 @@ static ssize_t show_delta(struct i2c_client *client, char *buf)
 		(struct synaptics_ts_data *)get_touch_handle(client);
 
 	int ret = 0;
-
+	mutex_lock(&ts->pdata->thread_lock);
 	if (need_scan_pdt) {
 		SCAN_PDT();
 		need_scan_pdt = false;
@@ -2171,7 +2178,7 @@ static ssize_t show_delta(struct i2c_client *client, char *buf)
 		ret += snprintf(buf+ret,
 				PAGE_SIZE-ret,
 				"ERROR: full_raw_cap failed.\n");
-
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -2185,6 +2192,7 @@ static ssize_t show_chstatus(struct i2c_client *client, char *buf)
 	int trx_to_trx = 0;
 
 	if (power_state == POWER_ON || power_state == POWER_WAKE) {
+		mutex_lock(&ts->pdata->thread_lock);
 		touch_disable_irq(ts->client->irq);
 
 		if (need_scan_pdt) {
@@ -2208,6 +2216,7 @@ static ssize_t show_chstatus(struct i2c_client *client, char *buf)
 		synaptics_ts_init(ts->client);
 
 		touch_enable_irq(ts->client->irq);
+		mutex_unlock(&ts->pdata->thread_lock);
 
 	} else {
 		ret += snprintf(buf+ret,
@@ -2229,6 +2238,7 @@ static ssize_t show_sensor_speed_test(struct i2c_client *client, char *buf)
 	int upper_ret = 0;
 
 	if (power_state == POWER_ON || power_state == POWER_WAKE) {
+		mutex_lock(&ts->pdata->thread_lock);
 		touch_disable_irq(ts->client->irq);
 
 		if (need_scan_pdt) {
@@ -2281,6 +2291,7 @@ static ssize_t show_sensor_speed_test(struct i2c_client *client, char *buf)
 		synaptics_ts_init(ts->client);
 
 		touch_enable_irq(ts->client->irq);
+		mutex_unlock(&ts->pdata->thread_lock);
 
 	} else {
 		ret += snprintf(buf+ret,
@@ -2339,6 +2350,7 @@ static ssize_t show_tci(struct i2c_client *client, char *buf)
 	int ret = 0;
 	u8 buffer[7] = {0};
 
+	mutex_lock(&ts->pdata->thread_lock);
 	touch_i2c_read(client, f12_info.ctrl_reg_addr[20], 3, buffer);
 	ret += snprintf(buf, PAGE_SIZE, "report_mode [%s]\n", (buffer[2] & 0x3) == 0x2 ?
 			"WAKEUP_ONLY" : "NORMAL");
@@ -2369,6 +2381,7 @@ static ssize_t show_tci(struct i2c_client *client, char *buf)
 	ret += snprintf(buf+ret, PAGE_SIZE-ret, "TCI2 Tap Distance [%d]\n", buffer[4]);
 	ret += snprintf(buf+ret, PAGE_SIZE-ret, "TCI2 Threshold [%d]\n", buffer[5]);
 	ret += snprintf(buf+ret, PAGE_SIZE-ret, "TCI2 Interrupt Delay time [%d]\n", buffer[6]);
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -2439,12 +2452,15 @@ static ssize_t store_reg_ctrl(struct i2c_client *client,
 
 static ssize_t show_object_report(struct i2c_client *client, char *buf)
 {
+	struct synaptics_ts_data *ts = (struct synaptics_ts_data *)get_touch_handle(client);
+
 	int ret = 0;
 	u8 object_report_enable_reg_addr = 0;
 	u8 object_report_enable_reg = 0;
 
 	object_report_enable_reg_addr = f12_info.ctrl_reg_addr[23];
 
+	mutex_lock(&ts->pdata->thread_lock);
 	ret = touch_i2c_read(client, object_report_enable_reg_addr,
 			sizeof(object_report_enable_reg),
 			&object_report_enable_reg);
@@ -2474,7 +2490,7 @@ static ssize_t show_object_report(struct i2c_client *client, char *buf)
 		ret += snprintf(buf+ret, PAGE_SIZE-ret, " Bit7     :     Hand[E]dge                ->     %s\n", temp[7] ? "Enable" : "Disable");
 		ret += snprintf(buf+ret, PAGE_SIZE-ret, "============================================================\n\n");
 	}
-
+	mutex_unlock(&ts->pdata->thread_lock);
 	return ret;
 }
 
@@ -2663,7 +2679,7 @@ static ssize_t show_noise_delta_test(struct i2c_client *client, char *buf)
 	int noise_delta = 0;
 
 	if (power_state == POWER_ON || power_state == POWER_WAKE) {
-
+		mutex_lock(&ts->pdata->thread_lock);
 		if (need_scan_pdt) {
 			SCAN_PDT();
 			need_scan_pdt = false;
@@ -2680,6 +2696,7 @@ static ssize_t show_noise_delta_test(struct i2c_client *client, char *buf)
 				PAGE_SIZE-ret,
 				"Noise Delta Test : RESULT: %s",
 				( noise_delta > 0) ? "Pass\n" : "Fail\n");
+		mutex_unlock(&ts->pdata->thread_lock);
 	} else {
 		ret += snprintf(buf+ret,
 				PAGE_SIZE-ret,
@@ -3200,7 +3217,7 @@ static int get_swipe_info(struct synaptics_ts_data *ts)
 		swp->support_swipe = SUPPORT_SWIPE;
 		swp->swipe_enable_mask = 0x01;
 		swp->swipe_gesture = 0x04;
-		swp->swipe_min_distance = 10;
+		swp->swipe_min_distance = 16;
 		swp->swipe_ratio_threshold = 200;
 		swp->swipe_ratio_check_period = 5;
 		swp->swipe_ratio_check_min_distance = 2;
@@ -3411,7 +3428,9 @@ enum error_type synaptics_ts_probe(struct i2c_client *client,
 	ds4_i2c_client = client;
 	ts->pdata = lge_ts_data;
 	ts->state = state;
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	// Do nothing
+#else
 	if (ts->pdata->pwr->use_regulator) {
 		DO_IF(IS_ERR(ts->regulator_vdd = regulator_get(&client->dev,
 						ts->pdata->pwr->vdd)), error);
@@ -3463,7 +3482,9 @@ enum error_type synaptics_ts_remove(struct i2c_client *client)
 		rmidev_fhandler.exp_fn->remove(ts);
 		rmidev_fhandler.initialized = false;
 	}
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	//Do nothing
+#else
 	if (ts->pdata->pwr->use_regulator) {
 		regulator_put(ts->regulator_vio);
 		regulator_put(ts->regulator_vdd);
@@ -3652,7 +3673,9 @@ enum error_type synaptics_ts_init(struct i2c_client *client)
 						buf), error);
 		}
 	}
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	//Do nothing
+#else
 	if (lge_get_boot_mode() == LGE_BOOT_MODE_QEM_56K) {
 		TOUCH_INFO_MSG("mini_os_finger_amplitude = 0x%02X\n",
 				ts->pdata->role->mini_os_finger_amplitude);
@@ -4219,15 +4242,51 @@ enum error_type synaptics_ts_filter(struct i2c_client *client,
 
 	return NO_ERROR;
 }
-
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
 enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 {
 	struct synaptics_ts_data *ts
 		= (struct synaptics_ts_data *)get_touch_handle(client);
-#if 0
+
+	TOUCH_TRACE();
+
+	if (wakeup_by_swipe) {
+		power_state = power_ctrl;
+		TOUCH_INFO_MSG("%s : Skip power_control. power_state[%d]\n", __func__, power_state);
+		return NO_ERROR;
+	}
+
+	switch (power_ctrl) {
+	case POWER_OFF:
+		if (ts->ts_swipe_data.support_swipe > NO_SUPPORT_SWIPE)
+			print_swipe_debug_reason(ts);
+		ts->is_init = 0;
+		break;
+	case POWER_ON:
+		break;
+	case POWER_SLEEP:
+		if (!ts->lpwg_ctrl.lpwg_is_enabled)
+			sleep_control(ts, 0, 1);
+		break;
+	case POWER_WAKE:
+		break;
+	default:
+		break;
+	}
+	power_state = power_ctrl;
+
+	TOUCH_INFO_MSG("%s : power_state[%d]\n", __func__, power_state);
+	return NO_ERROR;
+}
+#else
+enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
+{
+	struct synaptics_ts_data *ts
+		= (struct synaptics_ts_data *)get_touch_handle(client);
+
 	int i =0;
 	int ret = 0;
-#endif
+
 	TOUCH_TRACE();
 
 	if (wakeup_by_swipe) {
@@ -4242,7 +4301,7 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 			print_swipe_debug_reason(ts);
 
 		ts->is_init = 0;
-#if 0
+
 		if ((ts->pdata->int_pin > 0) && (ts->pdata->reset_pin > 0)) {
 			gpio_tlmm_config(GPIO_CFG(ts->pdata->int_pin,
 				0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN,
@@ -4271,10 +4330,9 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 			}
                         mdelay(2);
 		} while(--i >= 0);
-#endif
+
 		break;
 	case POWER_ON:
-#if 0
 		i = 0;
 		do {
 			if (ts->pdata->pwr[i].type == 1) {
@@ -4297,17 +4355,13 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 			}
 			mdelay(2);
 		} while(++i < TOUCH_PWR_NUM);
-#endif
 
-#if 0
 		gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0,
 			GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_6MA),
 			GPIO_CFG_ENABLE);
 		gpio_direction_output(ts->pdata->reset_pin, 1);
-#endif
 		break;
 	case POWER_SLEEP:
-#if 0
 		if ((ts->pdata->reset_pin > 0))  {
 			gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0,
 						GPIO_CFG_INPUT,
@@ -4315,17 +4369,14 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 						GPIO_CFG_6MA), GPIO_CFG_ENABLE);
 			gpio_direction_input(ts->pdata->reset_pin);
 		}
-#endif
 		if (!ts->lpwg_ctrl.lpwg_is_enabled)
 			sleep_control(ts, 0, 1);
 		break;
 	case POWER_WAKE:
-#if 0
 		gpio_tlmm_config(GPIO_CFG(ts->pdata->reset_pin, 0,
 					GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,
 					GPIO_CFG_6MA), GPIO_CFG_ENABLE);
 		gpio_direction_output(ts->pdata->reset_pin, 1);
-#endif
 		break;
 	default:
 		break;
@@ -4335,6 +4386,7 @@ enum error_type synaptics_ts_power(struct i2c_client *client, int power_ctrl)
 	TOUCH_INFO_MSG("%s : power_state[%d]\n", __func__, power_state);
 	return NO_ERROR;
 }
+#endif
 
 enum error_type synaptics_ts_reset(struct i2c_client *client, int reset_ctrl)
 {
@@ -4740,7 +4792,9 @@ enum error_type synaptics_ts_resume(struct i2c_client *client)
 
 	if (wake_lock_active(&ts->timer_wake_lock))
 		wake_unlock(&ts->timer_wake_lock);
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	//Do nothing
+#else
 	if (atomic_read(&ts->state->upgrade_state) != UPGRADE_START) {
 		if (ts->lpwg_ctrl.has_debug_module) {
 			DO_SAFE(print_tci_debug_result(ts, 0), error);
@@ -4753,7 +4807,9 @@ enum error_type synaptics_ts_resume(struct i2c_client *client)
 
 	return NO_ERROR;
 
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	//Do nothing
+#else
 error:
 	return ERROR;
 #endif
@@ -5000,7 +5056,18 @@ static int set_doze_param(struct synaptics_ts_data *ts, int value)
 
 	touch_i2c_read(ts->client,
 			f12_info.ctrl_reg_addr[27], 6, buf_array);
-#if 0
+#if defined(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+	buf_array[2] = 0x0C;  /* False Activation Threshold */
+	buf_array[3] = 0x0B;  /* Max Active Duration */
+	buf_array[5] = 0x01;  /* Max Active Duration Timeout */
+
+	DO_SAFE(touch_i2c_write(ts->client, f12_info.ctrl_reg_addr[27],
+			6, buf_array), error);
+	return 0;
+error:
+	TOUCH_ERR_MSG("%s : failed to set doze interval\n", __func__);
+	return -EPERM;
+#else
 	/* max active duration */
 	if (ts->pw_data.tap_count < 3)
 		buf_array[3] = 3;
@@ -5017,17 +5084,6 @@ static int set_doze_param(struct synaptics_ts_data *ts, int value)
 				DOZE_INTERVAL_REG, 3), error);
 	DO_SAFE(touch_i2c_write_byte(ts->client,
 				DOZE_WAKEUP_THRESHOLD_REG, 30), error);
-	return 0;
-error:
-	TOUCH_ERR_MSG("%s : failed to set doze interval\n", __func__);
-	return -EPERM;
-#else
-	buf_array[2] = 0x0C;  /* False Activation Threshold */
-	buf_array[3] = 0x0B;  /* Max Active Duration */
-	buf_array[5] = 0x01;  /* Max Active Duration Timeout */
-
-	DO_SAFE(touch_i2c_write(ts->client, f12_info.ctrl_reg_addr[27],
-			6, buf_array), error);
 	return 0;
 error:
 	TOUCH_ERR_MSG("%s : failed to set doze interval\n", __func__);

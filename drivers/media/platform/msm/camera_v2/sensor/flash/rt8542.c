@@ -329,9 +329,9 @@ void rt8542_backlight_on(int level)
 		rt8542_read_reg(main_rt8542_dev->client, 0x0A, &bl_ctrl);
 
 		/* BLED2 disable */
-		bl_ctrl &= 0x77;
-		bl_ctrl |= 0x11;
-		rt8542_write_reg(main_rt8542_dev->client, 0x0A, bl_ctrl);
+		//bl_ctrl &= 0x77;
+		//bl_ctrl |= 0x11;
+		rt8542_write_reg(main_rt8542_dev->client, 0x0A, 0x11);
 
 		/*	OVP(32V), MAX BLED(20mA), OCP(1.0A), Boost Frequency(500khz)  Ramp up rate(262.144ms)  Ramp down rate(262.144ms)*/
 		rt8542_write_reg(main_rt8542_dev->client, 0x02, 0x54);
@@ -446,10 +446,6 @@ void rt8542_lcd_backlight_set_level(int level)
 		if (level == 0) {
 			rt8542_backlight_off();
 		} else {
-			if(level < MIN_BRIGHTNESS_RT8542)
-			{
-				level = MIN_BRIGHTNESS_RT8542;
-			}
 			bright_per = (level / 2) - 1;
 			rt8542_backlight_on(bright_per);
 		}

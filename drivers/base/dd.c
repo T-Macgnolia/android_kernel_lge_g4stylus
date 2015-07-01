@@ -369,7 +369,8 @@ probe_failed:
 	} else if (ret != -ENODEV && ret != -ENXIO) {
 		/* driver matched but the probe failed */
 #if defined(CONFIG_PRE_SELF_DIAGNOSIS)
-		lge_pre_self_diagnosis((char *) drv->bus->name,4,(char *) dev_name(dev),(char *) drv->name, ret);
+        if(!strstr((char*)drv->name,"jtag") && !strstr((char*)drv->name,"coresight"))
+            lge_pre_self_diagnosis((char *) drv->bus->name,4,(char *) dev_name(dev),(char *) drv->name, ret);
 #endif
 		printk(KERN_WARNING
 		       "%s: probe of %s failed with error %d\n",

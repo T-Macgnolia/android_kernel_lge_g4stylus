@@ -125,7 +125,9 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
 			: "cc");
 			isb();
 		}
+#ifndef CONFIG_MACH_MSM8939_P1BDSN_GLOBAL_COM
 		wfe();
+#endif
 		if (msm_krait_need_wfe_fixup) {
 			tmp |= 0x10000;
 			__asm__ __volatile__(

@@ -3420,7 +3420,7 @@ validate_exit:
 		ovlist->processed_overlays = i;
 
 	if (IS_ERR_VALUE(ret)) {
-		pr_err("err=%d total_ovs:%d processed:%d left:%d right:%d\n",
+		pr_debug("err=%d total_ovs:%d processed:%d left:%d right:%d\n",
 			ret, num_ovs, ovlist->processed_overlays, left_lm_ovs,
 			right_lm_ovs);
 		mdss_mdp_overlay_release(mfd, new_reqs);

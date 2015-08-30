@@ -115,6 +115,11 @@ enum msm_otg_phy_reg_mode {
 #if defined (CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
 extern void update_status(int code, int value);
 #endif
+#if defined(CONFIG_LGE_MODULE_DETECT)
+extern int get_display_id(void);
+#define TD4191	0
+#define MIT300	1
+#endif
 
 #ifdef CONFIG_USB_G_LGE_MSM_OTG_ENABLE
 static int otg_get_prop_usbin_voltage_now(struct msm_otg *motg);
@@ -1867,8 +1872,17 @@ static int msm_otg_notify_chg_type(struct msm_otg *motg)
 #endif
 
 #if defined (CONFIG_TOUCHSCREEN_LGE_SYNAPTICS_TD4191)
+#if defined(CONFIG_LGE_MODULE_DETECT)
+	if (get_display_id() == TD4191) {
+		update_status(1, motg->chg_type);
+	} else {
+		/* MIT300 */
+	}
+#else
 	update_status(1, motg->chg_type);
 #endif
+#endif
+
 #ifdef CONFIG_MACH_MSM8916_YG_SKT_KR
 	if (get_prop_hw_rev() == HW_REV_0){
 		if (charger_type < POWER_SUPPLY_TYPE_USB && charger_type > POWER_SUPPLY_TYPE_BATTERY)

@@ -58,10 +58,11 @@ extern int lm3632_dsv_ctrl(int dsv_en);
 int is_first_dsv_control = 1;
 bool is_available_dsv_control = 0;
 int dual_panel;
-#elif defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+#elif defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 int has_dsv_f;
 extern void lm3632_dsv_fd_ctrl(void);
 extern void mdss_lcd_do_lut_update(void);
+extern int lcd_syna_dongbu_d_ic_id ;
 #endif
 
 #if defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)
@@ -190,7 +191,7 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 
 
 	for (i = DSI_MAX_PM - 1; i >= 0; i--) {
-#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined(CONFIG_LCD_VDD_VDDIO_EXT_LDO)
+#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_LCD_VDD_VDDIO_EXT_LDO)
 		if (DSI_PANEL_PM == i)
 			continue;
 #endif
@@ -275,7 +276,7 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 	}
 #endif
 	for (i = 0; i < DSI_MAX_PM; i++) {
-#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 		if (!pdata->panel_info.cont_splash_enabled && (DSI_PANEL_PM == i)){
 #if 0//defined (LGD_INCELL_PHASE3_APPLY_POWER_SEQUENCE)
 		if (gpio_is_valid(ctrl_pdata->rst_gpio)) {
@@ -838,7 +839,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	 * Issue hardware reset line after enabling the DSI clocks and data
 	 * data lanes for LP11 init
 	 */
-#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 //	MIPI_OUTP((ctrl_pdata->ctrl_base) + 0xac, 0x0);
 	if (mipi->lp11_init) {
 		u32 tmp;
@@ -1060,6 +1061,11 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata, int power_state)
 
 error:
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
+#if defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
+  if(lcd_syna_dongbu_d_ic_id  == SECONDARY_MODULE) {
+	mdelay(20);
+  }
+#endif
 	pr_debug("%s-:End\n", __func__);
 	return ret;
 }
@@ -1490,11 +1496,13 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		if (ctrl_pdata->on_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_unblank(pdata);
 #if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+	  if (lcd_syna_dongbu_d_ic_id != SECONDARY_MODULE) {
 		if (ctrl_pdata->do_lut_update == true)
 		{
 			pr_info("%s:%d, F35 recovery, send 0x26 dcs \n",__func__, __LINE__);
 			mdss_lcd_do_lut_update();
 		}
+	  }
 #endif
 		break;
 	case MDSS_EVENT_PANEL_ON:
@@ -2083,7 +2091,7 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			pr_err("%s:%d, Disp_en gpio not specified\n",
 					__func__, __LINE__);
 	}
-#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+#if defined (CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)|| defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 	ctrl_pdata->disp_lcd_ldo_1v8_gpio = of_get_named_gpio(ctrl_pdev->dev.of_node,
 		"qcom,platform-lcd-ldo-1v8-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->disp_lcd_ldo_1v8_gpio))
@@ -2327,7 +2335,9 @@ int dsi_panel_device_register(struct device_node *pan_node,
 			ctrl_pdata->pclk_rate, ctrl_pdata->byte_clk_rate);
 
 	ctrl_pdata->ctrl_state = CTRL_STATE_UNKNOWN;
-#if defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)
+#if defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) \
+	|| defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) \
+	|| defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 	has_dsv_f = of_property_read_bool(pan_node,
 			"lge,has-dsv");
 #endif

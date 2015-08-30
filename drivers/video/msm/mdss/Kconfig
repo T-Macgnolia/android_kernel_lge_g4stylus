@@ -55,7 +55,7 @@ config LGE_BW_CLK_TUNING
 	---help---
 	Tuning AB/IB value and MDP core clock value.
 config LGE_LCD_ESD
-	bool "Enable sysfs for LCD ESD Recovery"
+	bool "Enable a function for report panel dead"
 	default n
 config LGD_INCELL_VIDEO_WVGA_PT_PANEL
 	bool "Enable LGD INCELL panel"
@@ -72,7 +72,9 @@ config JDI_INCELL_VIDEO_HD_PANEL
 config LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL
 	bool "Enable LGD INCELL PHASE3 HD panel"
 	default n
-
+config LGD_DONGBU_INCELL_VIDEO_HD_PANEL
+	bool "Enable LGD DONGBU INCELL HD panel"
+	default n
 config LGE_MIPI_DSI_BYD_ILI9806E_WVGA
 	bool "Enable BYD ILI9806E panel"
 	default n

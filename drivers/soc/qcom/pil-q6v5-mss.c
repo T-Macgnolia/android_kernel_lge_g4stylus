@@ -66,8 +66,16 @@ struct lge_hw_smem_id2_type {
 	u32 sbl_log_meta_info;
 	u32 sbl_delta_time;
 	u32 lcd_maker;
+	u32 touch_maker;
 	u32 build_info;             /* build type user:0 userdebug:1 eng:2 */
 	int modem_reset;
+#if defined(CONFIG_LGE_MODULE_DETECT)
+	int display_id;
+	int touch_id;
+	int proximity_id;
+	int accel_id;
+	int magnetic_id;
+#endif
 };
 #endif
 

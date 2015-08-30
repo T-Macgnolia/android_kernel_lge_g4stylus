@@ -66,13 +66,28 @@ typedef enum {
   QFPROM_VERSION_MAX
 } qfprom_version_etype;
 
+#define RV_IMAGE_NAME_SIZE 10
+#define RV_ERR_DISABLED -1
+#define RV_ERR_NOT_SUPPORTED -2
+#define RV_ERR_EXCEED_NAME_SIZE -3
+
 typedef struct {
   u32 type;
-  int cnt;
-  char name[10];
-} qfprom_version_info;
+  char name[RV_IMAGE_NAME_SIZE];
+} qfprom_version_typename;
 
 qfprom_result_bits anti_rollback_enable = {QFPROM_RESULT_DBG_DISABLE, QFPROM_DBG_DISABLE, 0x00000000, 0x00780000};
+
+qfprom_version_typename version_type[QFPROM_VERSION_MAX] = {
+  {QFPROM_VERSION_SBL1,   "sbl1"  },
+  {QFPROM_VERSION_TZ,     "tz"    },
+  {QFPROM_VERSION_PIL,    "pil"   },
+  {QFPROM_VERSION_APPSBL, "appsbl"},
+  {QFPROM_VERSION_RPM,    "rpm"   },
+  {QFPROM_VERSION_HYP,    "hyp"   },
+  {QFPROM_VERSION_MBA,    "mba"   },
+  {QFPROM_VERSION_MODEM,  "modem" },
+};
 
 qfprom_result_bits version_bits[7] = {
   {QFPROM_VERSION_SBL1,    QFPROM_ANTIROLLBACK1,  0x00000FFE,  0x00000000},

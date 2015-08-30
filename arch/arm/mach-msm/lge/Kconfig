@@ -503,6 +503,12 @@ config LCD_KCAL
         bool "Enable sysfs for LCD KCAL"
         default n
 
+config LGE_MODULE_DETECT
+	bool "Enable Module detection"
+	default n
+	help
+		Feature for read device maker id, like lcd or touch maker
+
 config PRE_SELF_DIAGNOSIS
 	tristate "Support LGE self diagnosis for factory"
 	default n

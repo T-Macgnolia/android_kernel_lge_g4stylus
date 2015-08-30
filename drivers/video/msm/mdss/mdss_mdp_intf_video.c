@@ -26,7 +26,9 @@
 
 #if defined(CONFIG_LGD_LD083_VIDEO_WUXGA_PT_PANEL)
 int is_dsv_cont_splash_screening_f;
-#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL)) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)
+#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) \
+|| defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL)) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) \
+|| defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 extern int has_dsv_f;
 int is_dsv_cont_splash_screening_f;
 #endif
@@ -1024,7 +1026,9 @@ int mdss_mdp_video_reconfigure_splash_done(struct mdss_mdp_ctl *ctl,
 #if defined(CONFIG_LGD_LD083_VIDEO_WUXGA_PT_PANEL)
 			pr_info("%s: %d is_dsv_cont_splash_screening_f = 1 \n", __func__, __LINE__);
 			is_dsv_cont_splash_screening_f = 1;
-#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL)) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)
+#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) \
+|| defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL)) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) \
+|| defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 		if (has_dsv_f) {
 			is_dsv_cont_splash_screening_f = 1;
 		}
@@ -1061,7 +1065,9 @@ int mdss_mdp_video_reconfigure_splash_done(struct mdss_mdp_ctl *ctl,
 			pr_info("%s: %d send event... MDSS_EVENT_CONT_SPLASH_FINISH \n", __func__, __LINE__);
 			pr_info("%s: %d is_dsv_cont_splash_screening_f = 0 \n", __func__, __LINE__);
 			is_dsv_cont_splash_screening_f = 0;
-#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)) || defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+#elif (defined(CONFIG_LGD_INCELL_VIDEO_WVGA_PT_PANEL) || defined(CONFIG_LGD_INCELL_VIDEO_FWVGA_PT_PANEL) \
+|| defined(CONFIG_JDI_INCELL_VIDEO_HD_PANEL) || defined(CONFIG_JDI_INCELL_VIDEO_FHD_PANEL)) \
+|| defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
 		if (has_dsv_f) {
 			is_dsv_cont_splash_screening_f = 0;
 		}

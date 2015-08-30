@@ -407,6 +407,9 @@ struct mdss_panel_info {
 	bool shutdown_pending;
 #endif
 	bool is_prim_panel;
+#if defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
+	int display_id; 
+#endif
 
 	char panel_name[MDSS_MAX_PANEL_LEN];
 	struct mdss_mdp_pp_tear_check te;

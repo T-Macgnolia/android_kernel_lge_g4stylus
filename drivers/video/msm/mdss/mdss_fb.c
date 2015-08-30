@@ -93,8 +93,13 @@ static bool fb_blank_called;
 
 static struct msm_mdp_interface *mdp_instance;
 
+#if defined (CONFIG_LGE_LCD_ESD)
+static struct completion unblank_done;
+#endif
+
 #if defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
 extern struct mdss_panel_data *pdata_lut_update;
+extern int lcd_syna_dongbu_d_ic_id;
 #endif
 
 static int mdss_fb_register(struct msm_fb_data_type *mfd);
@@ -470,6 +475,58 @@ static ssize_t mdss_mdp_show_blank_event(struct device *dev,
 	return ret;
 }
 
+#if defined (CONFIG_LGE_LCD_ESD)
+int lge_mdss_report_panel_dead(void)
+{
+	struct fb_info *fbi = fbi_list[0];
+	struct msm_fb_data_type *mfd;
+	int timeout;
+	u32 backup_level;
+	char *envp[2] = {"PANEL_ALIVE=0", NULL};
+
+	pr_info("********ESD detected!!!!LCD recovery function called!!!!********\n");
+
+	if (fbi == NULL) {
+		pr_info("esd recovery called on uninitialzed fb0\n");
+		return ESDRC_LCD_OFF;
+	}
+
+	mfd = (struct msm_fb_data_type *)fbi->par;
+
+	if (mfd == NULL) {
+		pr_info("esd recovery called on uninitialzed mfd\n");
+		return ESDRC_LCD_OFF;
+	}
+
+	if(mdss_fb_is_power_off(mfd)) {
+		pr_info("esd recovery is called on fb power off state\n");
+		return ESDRC_LCD_OFF;
+	}
+
+	backup_level = mfd->bl_level_scaled;
+	pr_info("bl_level, bl_level_scaled : %d %d\n",
+			mfd->bl_level, mfd->bl_level_scaled);
+	pr_info("Panel has gone bad, sending uevent - %s\n", envp[0]);
+	INIT_COMPLETION(unblank_done);
+	kobject_uevent_env(&fbi->dev->kobj, KOBJ_CHANGE, envp);
+	timeout = wait_for_completion_interruptible_timeout(&unblank_done, 5*HZ);
+	if (!timeout)
+		pr_err("unblank hasn't happened yet\n");
+	mdss_fb_set_backlight(mfd, backup_level);
+
+    return ESDRC_OK;
+}
+
+EXPORT_SYMBOL(lge_mdss_report_panel_dead);
+
+static ssize_t mdss_fb_set_esd_lcd_reset(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	lge_mdss_report_panel_dead();
+	return count;
+}
+#endif
+
 static void __mdss_fb_idle_notify_work(struct work_struct *work)
 {
 	struct delayed_work *dw = to_delayed_work(work);
@@ -827,6 +884,10 @@ static DEVICE_ATTR(msm_fb_thermal_level, S_IRUGO | S_IWUSR,
 	mdss_fb_get_thermal_level, mdss_fb_set_thermal_level);
 static DEVICE_ATTR(always_on, S_IRUGO | S_IWUSR | S_IWGRP,
 	mdss_fb_get_doze_mode, mdss_fb_set_doze_mode);
+#if defined (CONFIG_LGE_LCD_ESD)
+static DEVICE_ATTR(lcd_esd_reset, S_IRUGO | S_IWUSR | S_IWGRP,
+	NULL, mdss_fb_set_esd_lcd_reset);
+#endif
 
 static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_msm_fb_type.attr,
@@ -843,6 +904,9 @@ static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_porch.attr,
 	&dev_attr_timing_value.attr,
 	&dev_attr_tclk.attr,
+#endif
+#if defined (CONFIG_LGE_LCD_ESD)
+	&dev_attr_lcd_esd_reset.attr,
 #endif
 	NULL,
 };
@@ -1294,6 +1358,7 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 		if (mfd->bl_level_scaled == temp) {
 			mfd->bl_level = bkl_lvl;
 #if defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+		  if (lcd_syna_dongbu_d_ic_id != SECONDARY_MODULE) {
 			if(mfd->bl_level !=0) {
 				pr_debug("backlight sent to panel :%d\n", temp);
 				pdata->set_backlight(pdata, temp);
@@ -1301,6 +1366,7 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 				mfd->bl_level_scaled = temp;
 				bl_notify_needed = true;
 			}
+		  }
 #endif
 		} else {
 			pr_debug("backlight sent to panel :%d\n", temp);
@@ -1415,8 +1481,10 @@ static int mdss_fb_unblank_sub(struct msm_fb_data_type *mfd)
 		if (!mfd->bl_updated) {
 			mfd->bl_updated = 1;
 #if defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL)
+		  if (lcd_syna_dongbu_d_ic_id != SECONDARY_MODULE) {
 			if (mfd->unset_bl_level != 0)
 				mdss_fb_set_backlight(mfd, mfd->unset_bl_level);
+		  }
 #else
 			mdss_fb_set_backlight(mfd, mfd->unset_bl_level);
 #endif
@@ -1465,6 +1533,9 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_UNBLANK:
 		pr_debug("unblank called. cur pwr state=%d\n", cur_power_state);
 		ret = mdss_fb_unblank_sub(mfd);
+#if defined (CONFIG_LGE_LCD_ESD)
+		complete(&unblank_done);
+#endif
 		break;
 
 	case FB_BLANK_VSYNC_SUSPEND:
@@ -1547,7 +1618,7 @@ static int mdss_fb_blank(int blank_mode, struct fb_info *info)
 			mfd->suspend.panel_power_state = MDSS_PANEL_POWER_OFF;
 		return 0;
 	}
-	pr_debug("mode: %d\n", blank_mode);
+	pr_info("mode: %d\n", blank_mode);
 
 	pdata = dev_get_platdata(&mfd->pdev->dev);
 
@@ -2156,6 +2227,9 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	init_completion(&mfd->no_update.comp);
 	init_completion(&mfd->power_off_comp);
 	init_completion(&mfd->power_set_comp);
+#if defined (CONFIG_LGE_LCD_ESD)
+	init_completion(&unblank_done);
+#endif
 	init_waitqueue_head(&mfd->commit_wait_q);
 	init_waitqueue_head(&mfd->idle_wait_q);
 	init_waitqueue_head(&mfd->ioctl_q);

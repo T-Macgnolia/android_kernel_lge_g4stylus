@@ -147,6 +147,8 @@ int power_block = 0;
 extern bool wakeup_by_swipe_mit300;
 extern int lockscreen_stat_mit300;
 
+extern int mip_swipe_control(struct i2c_client* client, bool bEnable);
+
 static void safety_reset(struct lge_touch_data *ts);
 static int touch_ic_init(struct lge_touch_data *ts);
 static void touch_work_func_a(struct lge_touch_data *ts);
@@ -947,9 +949,12 @@ int touch_send_wakeup(void *info)
 		if (lockscreen_stat_mit300 == 0) {
 			wakeup_by_swipe_mit300 = false;
 			TOUCH_INFO_MSG("drop LPWG_SWIPE_DOWN event, lockscreen=%d\n", lockscreen_stat_mit300);
+			mip_swipe_control(ts->client, true);
 			return -1;
 		}
 		send_uevent(lpwg_uevent[3]);
+		touch_drv->ic_ctrl(ts->client, IC_CTRL_WAKEUP_BY_SWIPE, (u32)&wakeup_by_swipe_mit300);
+		TOUCH_INFO_MSG("[%s] - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
 	} else {
 		TOUCH_DEBUG_MSG("error send mode = 0x%x\n", ts->pdata->send_lpwg);
 	}
@@ -2073,6 +2078,7 @@ static int touch_fb_suspend(struct device *device)
 
 	ts->pdata->panel_on = 0;
 
+	mutex_lock(&ts->thread_lock);
 	//if (ts->ts_swipe_data.support_swipe > NO_SUPPORT_SWIPE)
 		wakeup_by_swipe_mit300 = false;
 		touch_drv->ic_ctrl(ts->client, IC_CTRL_WAKEUP_BY_SWIPE, (u32)&wakeup_by_swipe_mit300);
@@ -2080,15 +2086,16 @@ static int touch_fb_suspend(struct device *device)
 
 	if (ts->pdata->curr_pwr_state == POWER_OFF) {
 		TOUCH_INFO_MSG("%s : curr_pwr_state is POWER OFF\n", __func__);
+		mutex_unlock(&ts->thread_lock);
 		return 0;
 	}
 
 	if(power_block){
 		TOUCH_INFO_MSG("touch_suspend is not executed\n");
+		mutex_unlock(&ts->thread_lock);
 		return 0;
 	}
 
-	mutex_lock(&ts->thread_lock);
 	touch_disable(ts->client->irq);
 	if (!ts->pdata->lpwg_mode)
 		cancel_delayed_work_sync(&ts->work_init);
@@ -2192,12 +2199,6 @@ static int touch_fb_resume(struct device *device)
 		queue_delayed_work(touch_wq, &ts->work_init, 0);
 
 exit:
-	if (wakeup_by_swipe_mit300) {
-		touch_drv->ic_ctrl(ts->client, IC_CTRL_WAKEUP_BY_SWIPE, (u32)&wakeup_by_swipe_mit300);
-		TOUCH_INFO_MSG("[%s] set wakeup by swipe !!!!\n", __func__);
-		wakeup_by_swipe_mit300 = false;
-	}
-	TOUCH_INFO_MSG("[%s] - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
 	mutex_unlock(&ts->thread_lock);
 
 	return 0;
@@ -2247,7 +2248,7 @@ static int touch_notifier_callback(struct notifier_block *self, unsigned long ev
 	int *blank;
 	struct lge_touch_data *ts = container_of(self, struct lge_touch_data, fb_notifier_block);
 
-	if (evdata && evdata->data && event == FB_EVENT_BLANK && ts && ts->client) {
+	if (evdata && evdata->data && event == FB_EARLY_EVENT_BLANK && ts && ts->client) {
 		blank = evdata->data;
 		TOUCH_INFO_MSG("[%s]\n", __func__);
 		if (*blank == FB_BLANK_UNBLANK) {
@@ -2737,6 +2738,15 @@ static ssize_t lpwg_data_store(struct lge_touch_data *ts, const char *buf, size_
 
 	sscanf(buf, "%c", &reply);
 	TOUCH_INFO_MSG("Called lpwg_data_store reply = %c\n", reply);
+
+	if (reply == '0') {
+		wakeup_by_swipe_mit300 = false;
+		mutex_lock(&ts->thread_lock);
+		touch_drv->ic_ctrl(ts->client, IC_CTRL_WAKEUP_BY_SWIPE, (u32)&wakeup_by_swipe_mit300);
+		mutex_unlock(&ts->thread_lock);
+		TOUCH_INFO_MSG("[%s] - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
+		TOUCH_INFO_MSG("%s : wakeup_by_swipe_mit300[%d]\n", __func__, wakeup_by_swipe_mit300);
+	}
 
 	return count;
 }

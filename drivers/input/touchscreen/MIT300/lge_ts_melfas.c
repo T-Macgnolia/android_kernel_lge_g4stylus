@@ -1090,85 +1090,89 @@ static int mit_lpwg_event(struct i2c_client *client, struct touch_data *data, u8
 	memset(&ts->pdata->lpwg_size, 0, sizeof(int));
 
 	TOUCH_INFO_MSG("%s - gesture_code[%d]\n", __func__, gesture_code);
-
-	switch(gesture_code){
-		case MIP_EVENT_GESTURE_DOUBLE_TAP:
-			ts->pdata->send_lpwg = LPWG_DOUBLE_TAP;
-			for(i = 2; i < sz; i += LPWG_EVENT_SZ){
-				u8 *tmp = &buf[i];
-				x = tmp[1] | ((tmp[0] & 0xf) << 8);
-				y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
-				if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
-					TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[XXX] y[XXX] \n", gesture_code, (i+1)/LPWG_EVENT_SZ);
-				} else {
-					TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+	if (ts->pdata->panel_on == 0 && ts->pdata->lpwg_mode) {
+		switch(gesture_code){
+			case MIP_EVENT_GESTURE_DOUBLE_TAP:
+				ts->pdata->send_lpwg = LPWG_DOUBLE_TAP;
+				for(i = 2; i < sz; i += LPWG_EVENT_SZ){
+					u8 *tmp = &buf[i];
+					x = tmp[1] | ((tmp[0] & 0xf) << 8);
+					y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
+					if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
+						TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[XXX] y[XXX] \n", gesture_code, (i+1)/LPWG_EVENT_SZ);
+					} else {
+						TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+					}
+					ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
+					ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
+					ts->pdata->lpwg_size++;
 				}
-				ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
-				ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
-				ts->pdata->lpwg_size++;
-			}
-			break;
-		case MIP_EVENT_GESTURE_MULTI_TAP:
-			ts->pdata->send_lpwg = LPWG_MULTI_TAP;
-			for(i = 2; i < sz; i += LPWG_EVENT_SZ){
-				u8 *tmp = &buf[i];
-				x = tmp[1] | ((tmp[0] & 0xf) << 8);
-				y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
-				if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
-					// not working
-				} else {
-					TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+				break;
+			case MIP_EVENT_GESTURE_MULTI_TAP:
+				ts->pdata->send_lpwg = LPWG_MULTI_TAP;
+				for(i = 2; i < sz; i += LPWG_EVENT_SZ){
+					u8 *tmp = &buf[i];
+					x = tmp[1] | ((tmp[0] & 0xf) << 8);
+					y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
+					if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
+						// not working
+					} else {
+						TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+					}
+					ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
+					ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
+					ts->pdata->lpwg_size++;
 				}
-				ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
-				ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
-				ts->pdata->lpwg_size++;
-			}
-			break;
-		case MIP_EVENT_GESTURE_SWIPE:
-			TOUCH_INFO_MSG("SWIPE EVENT - [%d] \n", gesture_code);
-			ts->pdata->send_lpwg = LPWG_SWIPE_DOWN;
-			for(i = 2; i < sz; i += LPWG_EVENT_SZ){
-				u8 *tmp = &buf[i];
-				x = tmp[1] | ((tmp[0] & 0xf) << 8);
-				y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
-				if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
-					TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[XXX] y[XXX] \n", gesture_code, (i+1)/LPWG_EVENT_SZ);
-				} else {
-					TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+				break;
+			case MIP_EVENT_GESTURE_SWIPE:
+				TOUCH_INFO_MSG("SWIPE EVENT - [%d] \n", gesture_code);
+				ts->pdata->send_lpwg = LPWG_SWIPE_DOWN;
+				for(i = 2; i < sz; i += LPWG_EVENT_SZ){
+					u8 *tmp = &buf[i];
+					x = tmp[1] | ((tmp[0] & 0xf) << 8);
+					y = tmp[2] | (((tmp[0] >> 4) & 0xf) << 8);
+					if (ts->pdata->role->use_security_all || (ts->pdata->role->use_security_mode && lockscreen_stat_mit300 == 1)) {
+						TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[XXX] y[XXX] \n", gesture_code, (i+1)/LPWG_EVENT_SZ);
+					} else {
+						TOUCH_INFO_MSG("LPWG[%d] - %d TAP x[%3d] y[%3d] \n", gesture_code, (i+1)/LPWG_EVENT_SZ, x, y);
+					}
+					ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
+					ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
+					ts->pdata->lpwg_size++;
 				}
-				ts->pdata->lpwg_x[((i + 1) / LPWG_EVENT_SZ) - 1] = x;
-				ts->pdata->lpwg_y[((i + 1) / LPWG_EVENT_SZ) - 1] = y;
-				ts->pdata->lpwg_size++;
-			}
-			wakeup_by_swipe_mit300 = true;
-			TOUCH_INFO_MSG("[%s] - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
-			mip_swipe_disable(ts->client);
-#if 0 // not yet TW
-			if (ts->lpwg_ctrl.password_enable || ts->pdata->role->use_security_all) {
-				TOUCH_DEBUG(DEBUG_BASE_INFO || DEBUG_LPWG, "LPWG Swipe Gesture: "
-					"start(xxxx,xxxx) end(xxxx,xxxx) "
-					"swipe_fail_reason(%d) swipe_time(%dms)\n",
-					swipe_fail_reason, swipe_time);
-			} else {
-				TOUCH_DEBUG(DEBUG_BASE_INFO || DEBUG_LPWG, "LPWG Swipe Gesture: "
-					"start(%4d,%4d) end(%4d,%4d) "
-					"swipe_fail_reason(%d) swipe_time(%dms)\n",
-					swipe_start_x, swipe_start_y,
-					swipe_end_x, swipe_end_y,
-					swipe_fail_reason, swipe_time);
-			}
-#endif
-			break;
-		default:
-			//Re-enter nap mode
-			wbuf[0] = MIP_R0_CTRL;
-			wbuf[1] = MIP_R1_CTRL_POWER_STATE;
-			wbuf[2] = MIP_CTRL_POWER_LOW;
-			if(mip_i2c_write(client, wbuf, 3)){
-				TOUCH_INFO_MSG("%s [ERROR] mip_i2c_write\n", __func__);
-				return -EIO;
-			}
-			break;
+				wakeup_by_swipe_mit300 = true;
+				TOUCH_INFO_MSG("[%s] - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
+				mip_swipe_disable(ts->client);
+	#if 0 // not yet TW
+				if (ts->lpwg_ctrl.password_enable || ts->pdata->role->use_security_all) {
+					TOUCH_DEBUG(DEBUG_BASE_INFO || DEBUG_LPWG, "LPWG Swipe Gesture: "
+						"start(xxxx,xxxx) end(xxxx,xxxx) "
+						"swipe_fail_reason(%d) swipe_time(%dms)\n",
+						swipe_fail_reason, swipe_time);
+				} else {
+					TOUCH_DEBUG(DEBUG_BASE_INFO || DEBUG_LPWG, "LPWG Swipe Gesture: "
+						"start(%4d,%4d) end(%4d,%4d) "
+						"swipe_fail_reason(%d) swipe_time(%dms)\n",
+						swipe_start_x, swipe_start_y,
+						swipe_end_x, swipe_end_y,
+						swipe_fail_reason, swipe_time);
+				}
+	#endif
+				break;
+			default:
+				//Re-enter nap mode
+				wbuf[0] = MIP_R0_CTRL;
+				wbuf[1] = MIP_R1_CTRL_POWER_STATE;
+				wbuf[2] = MIP_CTRL_POWER_LOW;
+				if(mip_i2c_write(client, wbuf, 3)){
+					TOUCH_INFO_MSG("%s [ERROR] mip_i2c_write\n", __func__);
+					return -EIO;
+				}
+				break;
+		}
+	} else {
+		TOUCH_INFO_MSG("LPWG[%d] - abnormal wakeup!!!\n", gesture_code);
+		return -EIO;
 	}
 
 	return 0;
@@ -1511,20 +1515,17 @@ static int mip_set_wakeup_by_swipe(struct i2c_client* client, u8 value)
 {
 	u8 wbuf[32];
 
-	TOUCH_INFO_MSG("%s [START]\n", __func__);
-
 	wbuf[0] = MIP_R0_LPWG;
 	wbuf[1] = MIP_R1_SET_WAKEUP_BY_SWIPE;
 	wbuf[2] = value;			// Set register wakeup_by_swipe
 
-	TOUCH_INFO_MSG("    [Wakeup by swipe] : (%4d)\n", wbuf[2]);
+	TOUCH_INFO_MSG("%s [Wakeup by swipe] : (%4d)\n", __func__, wbuf[2]);
 
 	if(mip_i2c_write(client, wbuf, 3)) {
 		TOUCH_ERR_MSG("%s [ERROR] mip_i2c_write\n", __func__);
 		return 1;
 	}
 
-	TOUCH_INFO_MSG("%s [DONE]\n", __func__);
 	return 0;
 }
 
@@ -1937,6 +1938,10 @@ static int mip_swipe_enable(struct i2c_client* client)
 
 	TOUCH_INFO_MSG("%s [START]\n", __func__);
 
+	wakeup_by_swipe_mit300 = false;
+	TOUCH_INFO_MSG("%s - wakeup_by_swipe_mit300 [%d] \n", __func__, wakeup_by_swipe_mit300);
+	mip_set_wakeup_by_swipe(client, wakeup_by_swipe_mit300);
+
 	wbuf[0] = MIP_R0_LPWG;
 	wbuf[1] = MIP_R1_SWIPE_ENABLE;
 	wbuf[2] = SWIPE_ENABLE;							// MIP_ADDR_SET_SWIPE_ENABLE
@@ -1993,6 +1998,20 @@ static int mip_swipe_disable(struct i2c_client* client)
 	TOUCH_INFO_MSG("%s [DONE]\n", __func__);
 	return 0;
 
+}
+
+int mip_swipe_control(struct i2c_client* client, bool bEnable)
+{
+	int ret = 0;
+
+	TOUCH_INFO_MSG("%s : bEnable[%d]\n", __func__, bEnable);
+
+	if (bEnable)
+		ret = mip_swipe_enable(client);
+	else
+		ret = mip_swipe_disable(client);
+
+	return ret;
 }
 
 /**
@@ -2888,8 +2907,7 @@ static ssize_t mit_lpwg_store(struct i2c_client *client, char* buf1, const char 
 		ts->pdata->lpwg_mode = (u8)mode;
 
 		/* Proximity Sensor on/off */
-		//if (ts->pdata->panel_on == 0 && ts->pdata->lpwg_panel_on == 0) {
-		if (ts->pdata->lpwg_panel_on == 0) {
+		if (ts->pdata->panel_on == 0 && ts->pdata->lpwg_panel_on == 0) {
 			TOUCH_INFO_MSG("SUSPEND AND SET\n");
 			if (!ts->pdata->lpwg_mode && !ts->pdata->lpwg_prox) {
 				touch_disable_wake(ts->client->irq);
@@ -2902,7 +2920,6 @@ static ssize_t mit_lpwg_store(struct i2c_client *client, char* buf1, const char 
 				mit_power_ctrl(client, ts_role->suspend_pwr);
 				atomic_set(&dev_state,DEV_SUSPEND);
 				ts->pdata->lpwg_mode_old = LPWG_NONE;
-				TOUCH_INFO_MSG(" Proxi-status is [Near] / lpwg_mode_old is [%d]\n",ts->pdata->lpwg_mode_old);
 				TOUCH_INFO_MSG("SUSPEND AND SET power off\n");
 #if defined(TOUCH_USE_DSV)
 				if (ts_pdata->enable_sensor_interlock) {
@@ -2920,8 +2937,13 @@ static ssize_t mit_lpwg_store(struct i2c_client *client, char* buf1, const char 
 				touch_enable_wake(ts->client->irq);
 				TOUCH_INFO_MSG("SUSPEND AND SET power on\n");
 			}
+			TOUCH_INFO_MSG(" Proxi-status is [%s] / lpwg_mode [%d] / lpwg_mode_old [%d]\n",
+				ts->pdata->lpwg_prox ? "FAR" : "NEAR", ts->pdata->lpwg_mode, ts->pdata->lpwg_mode_old);
 		} else {
 			TOUCH_INFO_MSG("PANEL ON \n");
+			atomic_set(&dev_state,DEV_RESUME_ENABLE);
+			touch_enable(ts->client->irq);
+			touch_disable_wake(ts->client->irq);
 		}
 	}
 	TOUCH_INFO_MSG("%s %X \n", __func__, ts->pdata->lpwg_mode);

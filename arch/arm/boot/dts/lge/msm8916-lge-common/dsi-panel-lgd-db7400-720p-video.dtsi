@@ -152,6 +152,43 @@
 			29
 			
 		];
+		qcom,mdss-dsi-on-command-for-glanceview = [
+
+			29 01 00 00 00 00 34 /*GIP Control Set*/
+			B5 19 04 1C 22 2F 80
+			2F 1F 04 40 05 00 20
+			09 04 40 05 00 A5 0D
+			2F 2F 3F FF 3F FF 01
+			7C 00 02 50 23 40 15
+			6C CB BA A9 97 8D 1F
+			23 40 15 6C CB BA A9
+			97 8D 1F
+
+			29 01 00 00 00 00 03 /*touch enable*/
+			B6 01 03
+
+			29 01 00 00 14 00 03 /*mipi lane floating*/
+			C8 00 00
+
+			29 01 00 00 00 00 02 /*add temp*/
+			CF 0F
+
+			29 01 00 00 00 00 1B /*touch gip control*/
+			D7 01 13 FF 39 0B 04
+			14 F4 01 00 00 00 00
+			60 01 67 67 47 10 10
+			34 00 00 00 00 00
+
+			29 01 00 00 00 00 06
+			F5 00 06 00 00 80
+
+			05 01 00 00 05 00 01 /*exit sleep*/
+			11
+
+			05 01 00 00 05 00 01 /*display on*/
+			29
+
+		];
 		qcom,mdss-dsi-off-command1 = [
 			05 01 00 00 28 00 01 /*display off*/
 			28
@@ -203,7 +240,7 @@
 		qcom,mdss-dsi-lane-1-state;
 		qcom,mdss-dsi-lane-2-state;
 		qcom,mdss-dsi-lane-3-state;
-		qcom,mdss-dsi-panel-timings = [A8 26 1A 00 50 54 1E 2F 3E 03 04 00];
+		qcom,mdss-dsi-panel-timings = [A8 26 1A 00 50 4A 28 2A 3E 03 04 00];
 		qcom,mdss-dsi-t-clk-post = <0x03>;
 		qcom,mdss-dsi-t-clk-pre = <0x24>;
 

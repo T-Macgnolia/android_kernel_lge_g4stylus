@@ -416,6 +416,7 @@ struct mdss_dsi_ctrl_pdata {
 
 	struct dsi_panel_cmds on_cmds;
 #if defined(CONFIG_LGD_INCELL_PHASE3_VIDEO_HD_PT_PANEL) || defined (CONFIG_LGD_DONGBU_INCELL_VIDEO_HD_PANEL)
+	struct dsi_panel_cmds on_cmds_for_glanceview;
 	struct dsi_panel_cmds off_cmds;
 	struct dsi_panel_cmds off_cmds_extra;
 #else
